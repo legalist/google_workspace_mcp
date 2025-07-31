@@ -16,10 +16,7 @@ def get_claude_config_path() -> Path:
     """Get the Claude Desktop config file path for the current platform."""
     system = platform.system()
     if system == "Darwin":  # macOS
-        return (
-            Path.home()
-            / "Library/Application Support/Claude/claude_desktop_config.json"
-        )
+        return Path.home() / "Library/Application Support/Claude/claude_desktop_config.json"
     elif system == "Windows":
         appdata = os.environ.get("APPDATA")
         if not appdata:
@@ -69,9 +66,7 @@ def get_oauth_credentials() -> Tuple[Optional[Dict[str, str]], Optional[str]]:
         env_vars["GOOGLE_OAUTH_CLIENT_SECRET"] = client_secret
 
         # Optional redirect URI
-        custom_redirect = input(
-            "Redirect URI (press Enter for default http://localhost:8000/oauth2callback): "
-        ).strip()
+        custom_redirect = input("Redirect URI (press Enter for default http://localhost:8000/oauth2callback): ").strip()
         if custom_redirect:
             env_vars["GOOGLE_OAUTH_REDIRECT_URI"] = custom_redirect
 
@@ -97,9 +92,7 @@ def get_oauth_credentials() -> Tuple[Optional[Dict[str, str]], Optional[str]]:
         env_vars["USER_GOOGLE_EMAIL"] = user_email
 
     # Development mode
-    if prompt_yes_no(
-        "\n🔧 Enable development mode (OAUTHLIB_INSECURE_TRANSPORT)?", default=False
-    ):
+    if prompt_yes_no("\n🔧 Enable development mode (OAUTHLIB_INSECURE_TRANSPORT)?", default=False):
         env_vars["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
     return env_vars, client_secret_path
@@ -119,17 +112,13 @@ def get_installation_options() -> Dict[str, any]:
     method = input("Select method [1]: ").strip()
     if method == "2":
         options["dev_mode"] = True
-        cwd = input(
-            "Path to google_workspace_mcp repository [current directory]: "
-        ).strip()
+        cwd = input("Path to google_workspace_mcp repository [current directory]: ").strip()
         options["cwd"] = cwd if cwd else os.getcwd()
     else:
         options["dev_mode"] = False
 
     # Single-user mode
-    if prompt_yes_no(
-        "\n👤 Enable single-user mode (simplified authentication)?", default=False
-    ):
+    if prompt_yes_no("\n👤 Enable single-user mode (simplified authentication)?", default=False):
         options["single_user"] = True
 
     # Tool selection
@@ -147,9 +136,7 @@ def get_installation_options() -> Dict[str, any]:
     return options
 
 
-def create_server_config(
-    options: Dict, env_vars: Dict, client_secret_path: Optional[str]
-) -> Dict:
+def create_server_config(options: Dict, env_vars: Dict, client_secret_path: Optional[str]) -> Dict:
     """Create the server configuration."""
     config = {}
 
@@ -196,13 +183,8 @@ def main():
             with open(config_path, "r") as f:
                 existing_config = json.load(f)
 
-            if (
-                "mcpServers" in existing_config
-                and "Google Workspace" in existing_config["mcpServers"]
-            ):
-                print(
-                    f"\n⚠️  Google Workspace MCP is already configured in {config_path}"
-                )
+            if "mcpServers" in existing_config and "Google Workspace" in existing_config["mcpServers"]:
+                print(f"\n⚠️  Google Workspace MCP is already configured in {config_path}")
                 if not prompt_yes_no("Do you want to reconfigure it?", default=True):
                     print("Installation cancelled.")
                     return
@@ -236,12 +218,8 @@ def main():
         print(f"📁 Config file: {config_path}")
 
         print("\n📋 Configuration Summary:")
-        print(
-            f"  • Installation method: {'Development' if options.get('dev_mode') else 'uvx (PyPI)'}"
-        )
-        print(
-            f"  • Authentication: {'Environment variables' if env_vars else 'Client secrets file'}"
-        )
+        print(f"  • Installation method: {'Development' if options.get('dev_mode') else 'uvx (PyPI)'}")
+        print(f"  • Authentication: {'Environment variables' if env_vars else 'Client secrets file'}")
         if options.get("single_user"):
             print("  • Single-user mode: Enabled")
         if options.get("tools"):

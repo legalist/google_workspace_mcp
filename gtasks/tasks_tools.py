@@ -89,14 +89,10 @@ async def get_task_list(service, user_google_email: str, task_list_id: str) -> s
     Returns:
         str: Task list details including title, ID, and last updated time.
     """
-    logger.info(
-        f"[get_task_list] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}"
-    )
+    logger.info(f"[get_task_list] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}")
 
     try:
-        task_list = await asyncio.to_thread(
-            service.tasklists().get(tasklist=task_list_id).execute
-        )
+        task_list = await asyncio.to_thread(service.tasklists().get(tasklist=task_list_id).execute)
 
         response = f"""Task List Details for {user_google_email}:
 - Title: {task_list["title"]}
@@ -104,9 +100,7 @@ async def get_task_list(service, user_google_email: str, task_list_id: str) -> s
 - Updated: {task_list.get("updated", "N/A")}
 - Self Link: {task_list.get("selfLink", "N/A")}"""
 
-        logger.info(
-            f"Retrieved task list '{task_list['title']}' for {user_google_email}"
-        )
+        logger.info(f"Retrieved task list '{task_list['title']}' for {user_google_email}")
         return response
 
     except HttpError as error:
@@ -133,9 +127,7 @@ async def create_task_list(service, user_google_email: str, title: str) -> str:
     Returns:
         str: Confirmation message with the new task list ID and details.
     """
-    logger.info(
-        f"[create_task_list] Invoked. Email: '{user_google_email}', Title: '{title}'"
-    )
+    logger.info(f"[create_task_list] Invoked. Email: '{user_google_email}', Title: '{title}'")
 
     try:
         body = {"title": title}
@@ -148,9 +140,7 @@ async def create_task_list(service, user_google_email: str, title: str) -> str:
 - Created: {result.get("updated", "N/A")}
 - Self Link: {result.get("selfLink", "N/A")}"""
 
-        logger.info(
-            f"Created task list '{title}' with ID {result['id']} for {user_google_email}"
-        )
+        logger.info(f"Created task list '{title}' with ID {result['id']} for {user_google_email}")
         return response
 
     except HttpError as error:
@@ -166,9 +156,7 @@ async def create_task_list(service, user_google_email: str, title: str) -> str:
 @server.tool()
 @require_google_service("tasks", "tasks")
 @handle_http_errors("update_task_list", service_type="tasks")
-async def update_task_list(
-    service, user_google_email: str, task_list_id: str, title: str
-) -> str:
+async def update_task_list(service, user_google_email: str, task_list_id: str, title: str) -> str:
     """
     Update an existing task list.
 
@@ -187,18 +175,14 @@ async def update_task_list(
     try:
         body = {"id": task_list_id, "title": title}
 
-        result = await asyncio.to_thread(
-            service.tasklists().update(tasklist=task_list_id, body=body).execute
-        )
+        result = await asyncio.to_thread(service.tasklists().update(tasklist=task_list_id, body=body).execute)
 
         response = f"""Task List Updated for {user_google_email}:
 - Title: {result["title"]}
 - ID: {result["id"]}
 - Updated: {result.get("updated", "N/A")}"""
 
-        logger.info(
-            f"Updated task list {task_list_id} with new title '{title}' for {user_google_email}"
-        )
+        logger.info(f"Updated task list {task_list_id} with new title '{title}' for {user_google_email}")
         return response
 
     except HttpError as error:
@@ -225,14 +209,10 @@ async def delete_task_list(service, user_google_email: str, task_list_id: str) -
     Returns:
         str: Confirmation message.
     """
-    logger.info(
-        f"[delete_task_list] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}"
-    )
+    logger.info(f"[delete_task_list] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}")
 
     try:
-        await asyncio.to_thread(
-            service.tasklists().delete(tasklist=task_list_id).execute
-        )
+        await asyncio.to_thread(service.tasklists().delete(tasklist=task_list_id).execute)
 
         response = f"Task list {task_list_id} has been deleted for {user_google_email}. All tasks in this list have also been deleted."
 
@@ -289,9 +269,7 @@ async def list_tasks(
     Returns:
         str: List of tasks with their details.
     """
-    logger.info(
-        f"[list_tasks] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}"
-    )
+    logger.info(f"[list_tasks] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}")
 
     try:
         params = {"tasklist": task_list_id}
@@ -324,9 +302,7 @@ async def list_tasks(
         next_page_token = result.get("nextPageToken")
 
         if not tasks:
-            return (
-                f"No tasks found in task list {task_list_id} for {user_google_email}."
-            )
+            return f"No tasks found in task list {task_list_id} for {user_google_email}."
 
         response = f"Tasks in list {task_list_id} for {user_google_email}:\n"
         for task in tasks:
@@ -344,9 +320,7 @@ async def list_tasks(
         if next_page_token:
             response += f"Next page token: {next_page_token}"
 
-        logger.info(
-            f"Found {len(tasks)} tasks in list {task_list_id} for {user_google_email}"
-        )
+        logger.info(f"Found {len(tasks)} tasks in list {task_list_id} for {user_google_email}")
         return response
 
     except HttpError as error:
@@ -362,9 +336,7 @@ async def list_tasks(
 @server.tool()
 @require_google_service("tasks", "tasks_read")
 @handle_http_errors("get_task", service_type="tasks")
-async def get_task(
-    service, user_google_email: str, task_list_id: str, task_id: str
-) -> str:
+async def get_task(service, user_google_email: str, task_list_id: str, task_id: str) -> str:
     """
     Get details of a specific task.
 
@@ -376,14 +348,10 @@ async def get_task(
     Returns:
         str: Task details including title, notes, status, due date, etc.
     """
-    logger.info(
-        f"[get_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}"
-    )
+    logger.info(f"[get_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}")
 
     try:
-        task = await asyncio.to_thread(
-            service.tasks().get(tasklist=task_list_id, task=task_id).execute
-        )
+        task = await asyncio.to_thread(service.tasks().get(tasklist=task_list_id, task=task_id).execute)
 
         response = f"""Task Details for {user_google_email}:
 - Title: {task.get("title", "Untitled")}
@@ -406,9 +374,7 @@ async def get_task(
         if task.get("webViewLink"):
             response += f"\n- Web View Link: {task['webViewLink']}"
 
-        logger.info(
-            f"Retrieved task '{task.get('title', 'Untitled')}' for {user_google_email}"
-        )
+        logger.info(f"Retrieved task '{task.get('title', 'Untitled')}' for {user_google_email}")
         return response
 
     except HttpError as error:
@@ -449,9 +415,7 @@ async def create_task(
     Returns:
         str: Confirmation message with the new task ID and details.
     """
-    logger.info(
-        f"[create_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Title: '{title}'"
-    )
+    logger.info(f"[create_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Title: '{title}'")
 
     try:
         body = {"title": title}
@@ -481,9 +445,7 @@ async def create_task(
         if result.get("webViewLink"):
             response += f"\n- Web View Link: {result['webViewLink']}"
 
-        logger.info(
-            f"Created task '{title}' with ID {result['id']} for {user_google_email}"
-        )
+        logger.info(f"Created task '{title}' with ID {result['id']} for {user_google_email}")
         return response
 
     except HttpError as error:
@@ -530,16 +492,12 @@ async def update_task(
 
     try:
         # First get the current task to build the update body
-        current_task = await asyncio.to_thread(
-            service.tasks().get(tasklist=task_list_id, task=task_id).execute
-        )
+        current_task = await asyncio.to_thread(service.tasks().get(tasklist=task_list_id, task=task_id).execute)
 
         body = {
             "id": task_id,
             "title": title if title is not None else current_task.get("title", ""),
-            "status": status
-            if status is not None
-            else current_task.get("status", "needsAction"),
+            "status": status if status is not None else current_task.get("status", "needsAction"),
         }
 
         if notes is not None:
@@ -552,11 +510,7 @@ async def update_task(
         elif current_task.get("due"):
             body["due"] = current_task["due"]
 
-        result = await asyncio.to_thread(
-            service.tasks()
-            .update(tasklist=task_list_id, task=task_id, body=body)
-            .execute
-        )
+        result = await asyncio.to_thread(service.tasks().update(tasklist=task_list_id, task=task_id, body=body).execute)
 
         response = f"""Task Updated for {user_google_email}:
 - Title: {result["title"]}
@@ -587,9 +541,7 @@ async def update_task(
 @server.tool()
 @require_google_service("tasks", "tasks")
 @handle_http_errors("delete_task", service_type="tasks")
-async def delete_task(
-    service, user_google_email: str, task_list_id: str, task_id: str
-) -> str:
+async def delete_task(service, user_google_email: str, task_list_id: str, task_id: str) -> str:
     """
     Delete a task from a task list.
 
@@ -606,9 +558,7 @@ async def delete_task(
     )
 
     try:
-        await asyncio.to_thread(
-            service.tasks().delete(tasklist=task_list_id, task=task_id).execute
-        )
+        await asyncio.to_thread(service.tasks().delete(tasklist=task_list_id, task=task_id).execute)
 
         response = f"Task {task_id} has been deleted from task list {task_list_id} for {user_google_email}."
 
@@ -651,9 +601,7 @@ async def move_task(
     Returns:
         str: Confirmation message with updated task details.
     """
-    logger.info(
-        f"[move_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}"
-    )
+    logger.info(f"[move_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}")
 
     try:
         params = {"tasklist": task_list_id, "task": task_id}
@@ -704,9 +652,7 @@ async def move_task(
 @server.tool()
 @require_google_service("tasks", "tasks")
 @handle_http_errors("clear_completed_tasks", service_type="tasks")
-async def clear_completed_tasks(
-    service, user_google_email: str, task_list_id: str
-) -> str:
+async def clear_completed_tasks(service, user_google_email: str, task_list_id: str) -> str:
     """
     Clear all completed tasks from a task list. The tasks will be marked as hidden.
 
@@ -717,18 +663,14 @@ async def clear_completed_tasks(
     Returns:
         str: Confirmation message.
     """
-    logger.info(
-        f"[clear_completed_tasks] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}"
-    )
+    logger.info(f"[clear_completed_tasks] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}")
 
     try:
         await asyncio.to_thread(service.tasks().clear(tasklist=task_list_id).execute)
 
         response = f"All completed tasks have been cleared from task list {task_list_id} for {user_google_email}. The tasks are now hidden and won't appear in default task list views."
 
-        logger.info(
-            f"Cleared completed tasks from list {task_list_id} for {user_google_email}"
-        )
+        logger.info(f"Cleared completed tasks from list {task_list_id} for {user_google_email}")
         return response
 
     except HttpError as error:

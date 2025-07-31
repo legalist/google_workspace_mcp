@@ -42,9 +42,7 @@ SHEETS_WRITE_SCOPE = "https://www.googleapis.com/auth/spreadsheets"
 # Google Forms API scopes
 FORMS_BODY_SCOPE = "https://www.googleapis.com/auth/forms.body"
 FORMS_BODY_READONLY_SCOPE = "https://www.googleapis.com/auth/forms.body.readonly"
-FORMS_RESPONSES_READONLY_SCOPE = (
-    "https://www.googleapis.com/auth/forms.responses.readonly"
-)
+FORMS_RESPONSES_READONLY_SCOPE = "https://www.googleapis.com/auth/forms.responses.readonly"
 
 # Google Slides API scopes
 SLIDES_SCOPE = "https://www.googleapis.com/auth/presentations"

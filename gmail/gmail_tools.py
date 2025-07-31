@@ -54,11 +54,7 @@ def _extract_message_body(payload):
             part_queue.extend(part.get("parts", []))  # Add sub-parts to the queue
 
     # If no plain text found, check the main payload body if it exists
-    if (
-        not body_data
-        and payload.get("mimeType") == "text/plain"
-        and payload.get("body", {}).get("data")
-    ):
+    if not body_data and payload.get("mimeType") == "text/plain" and payload.get("body", {}).get("data"):
         data = base64.urlsafe_b64decode(payload["body"]["data"])
         body_data = data.decode("utf-8", errors="ignore")
 
@@ -166,9 +162,7 @@ def _format_gmail_results_plain(messages: list, query: str) -> str:
 @server.tool()
 @handle_http_errors("search_gmail_messages", is_read_only=True, service_type="gmail")
 @require_google_service("gmail", "gmail_read")
-async def search_gmail_messages(
-    service, query: str, user_google_email: str, page_size: int = 10
-) -> str:
+async def search_gmail_messages(service, query: str, user_google_email: str, page_size: int = 10) -> str:
     """
     Searches messages in a user's Gmail account based on a query.
     Returns both Message IDs and Thread IDs for each found message, along with Gmail web interface links for manual verification.
@@ -181,15 +175,10 @@ async def search_gmail_messages(
     Returns:
         str: LLM-friendly structured results with Message IDs, Thread IDs, and clickable Gmail web interface URLs for each found message.
     """
-    logger.info(
-        f"[search_gmail_messages] Email: '{user_google_email}', Query: '{query}'"
-    )
+    logger.info(f"[search_gmail_messages] Email: '{user_google_email}', Query: '{query}'")
 
     response = await asyncio.to_thread(
-        service.users()
-        .messages()
-        .list(userId="me", q=query, maxResults=page_size)
-        .execute
+        service.users().messages().list(userId="me", q=query, maxResults=page_size).execute
     )
 
     # Handle potential null response (but empty dict {} is valid)
@@ -209,13 +198,9 @@ async def search_gmail_messages(
 
 
 @server.tool()
-@handle_http_errors(
-    "get_gmail_message_content", is_read_only=True, service_type="gmail"
-)
+@handle_http_errors("get_gmail_message_content", is_read_only=True, service_type="gmail")
 @require_google_service("gmail", "gmail_read")
-async def get_gmail_message_content(
-    service, message_id: str, user_google_email: str
-) -> str:
+async def get_gmail_message_content(service, message_id: str, user_google_email: str) -> str:
     """
     Retrieves the full content (subject, sender, plain text body) of a specific Gmail message.
 
@@ -226,9 +211,7 @@ async def get_gmail_message_content(
     Returns:
         str: The message details including subject, sender, and body content.
     """
-    logger.info(
-        f"[get_gmail_message_content] Invoked. Message ID: '{message_id}', Email: '{user_google_email}'"
-    )
+    logger.info(f"[get_gmail_message_content] Invoked. Message ID: '{message_id}', Email: '{user_google_email}'")
 
     logger.info(f"[get_gmail_message_content] Using service for: {user_google_email}")
 
@@ -245,10 +228,7 @@ async def get_gmail_message_content(
         .execute
     )
 
-    headers = {
-        h["name"]: h["value"]
-        for h in message_metadata.get("payload", {}).get("headers", [])
-    }
+    headers = {h["name"]: h["value"] for h in message_metadata.get("payload", {}).get("headers", [])}
     subject = headers.get("Subject", "(no subject)")
     sender = headers.get("From", "(unknown sender)")
 
@@ -279,9 +259,7 @@ async def get_gmail_message_content(
 
 
 @server.tool()
-@handle_http_errors(
-    "get_gmail_messages_content_batch", is_read_only=True, service_type="gmail"
-)
+@handle_http_errors("get_gmail_messages_content_batch", is_read_only=True, service_type="gmail")
 @require_google_service("gmail", "gmail_read")
 async def get_gmail_messages_content_batch(
     service,
@@ -336,11 +314,7 @@ async def get_gmail_messages_content_batch(
                         )
                     )
                 else:
-                    req = (
-                        service.users()
-                        .messages()
-                        .get(userId="me", id=mid, format="full")
-                    )
+                    req = service.users().messages().get(userId="me", id=mid, format="full")
                 batch.add(req, request_id=mid)
 
             # Execute batch request
@@ -370,10 +344,7 @@ async def get_gmail_messages_content_batch(
                             )
                         else:
                             msg = await asyncio.to_thread(
-                                service.users()
-                                .messages()
-                                .get(userId="me", id=mid, format="full")
-                                .execute
+                                service.users().messages().get(userId="me", id=mid, format="full").execute
                             )
                         return mid, msg, None
                     except ssl.SSLError as ssl_error:
@@ -477,9 +448,7 @@ async def send_gmail_message(
     send_body = {"raw": raw_message}
 
     # Send the message
-    sent_message = await asyncio.to_thread(
-        service.users().messages().send(userId="me", body=send_body).execute
-    )
+    sent_message = await asyncio.to_thread(service.users().messages().send(userId="me", body=send_body).execute)
     message_id = sent_message.get("id")
     return f"Email sent! Message ID: {message_id}"
 
@@ -506,9 +475,7 @@ async def draft_gmail_message(
     Returns:
         str: Confirmation message with the created draft's ID.
     """
-    logger.info(
-        f"[draft_gmail_message] Invoked. Email: '{user_google_email}', Subject: '{subject}'"
-    )
+    logger.info(f"[draft_gmail_message] Invoked. Email: '{user_google_email}', Subject: '{subject}'")
 
     # Prepare the email
     message = MIMEText(body)
@@ -524,9 +491,7 @@ async def draft_gmail_message(
     draft_body = {"message": {"raw": raw_message}}
 
     # Create the draft
-    created_draft = await asyncio.to_thread(
-        service.users().drafts().create(userId="me", body=draft_body).execute
-    )
+    created_draft = await asyncio.to_thread(service.users().drafts().create(userId="me", body=draft_body).execute)
     draft_id = created_draft.get("id")
     return f"Draft created! Draft ID: {draft_id}"
 
@@ -548,10 +513,7 @@ def _format_thread_content(thread_data: dict, thread_id: str) -> str:
 
     # Extract thread subject from the first message
     first_message = messages[0]
-    first_headers = {
-        h["name"]: h["value"]
-        for h in first_message.get("payload", {}).get("headers", [])
-    }
+    first_headers = {h["name"]: h["value"] for h in first_message.get("payload", {}).get("headers", [])}
     thread_subject = first_headers.get("Subject", "(no subject)")
 
     # Build the thread content
@@ -565,9 +527,7 @@ def _format_thread_content(thread_data: dict, thread_id: str) -> str:
     # Process each message in the thread
     for i, message in enumerate(messages, 1):
         # Extract headers
-        headers = {
-            h["name"]: h["value"] for h in message.get("payload", {}).get("headers", [])
-        }
+        headers = {h["name"]: h["value"] for h in message.get("payload", {}).get("headers", [])}
 
         sender = headers.get("From", "(unknown sender)")
         date = headers.get("Date", "(unknown date)")
@@ -604,9 +564,7 @@ def _format_thread_content(thread_data: dict, thread_id: str) -> str:
 @server.tool()
 @require_google_service("gmail", "gmail_read")
 @handle_http_errors("get_gmail_thread_content", is_read_only=True, service_type="gmail")
-async def get_gmail_thread_content(
-    service, thread_id: str, user_google_email: str
-) -> str:
+async def get_gmail_thread_content(service, thread_id: str, user_google_email: str) -> str:
     """
     Retrieves the complete content of a Gmail conversation thread, including all messages.
 
@@ -617,9 +575,7 @@ async def get_gmail_thread_content(
     Returns:
         str: The complete thread content with all messages formatted for reading.
     """
-    logger.info(
-        f"[get_gmail_thread_content] Invoked. Thread ID: '{thread_id}', Email: '{user_google_email}'"
-    )
+    logger.info(f"[get_gmail_thread_content] Invoked. Thread ID: '{thread_id}', Email: '{user_google_email}'")
 
     # Fetch the complete thread with all messages
     thread_response = await asyncio.to_thread(
@@ -631,9 +587,7 @@ async def get_gmail_thread_content(
 
 @server.tool()
 @require_google_service("gmail", "gmail_read")
-@handle_http_errors(
-    "get_gmail_threads_content_batch", is_read_only=True, service_type="gmail"
-)
+@handle_http_errors("get_gmail_threads_content_batch", is_read_only=True, service_type="gmail")
 async def get_gmail_threads_content_batch(
     service,
     thread_ids: List[str],
@@ -690,10 +644,7 @@ async def get_gmail_threads_content_batch(
                 for attempt in range(max_retries):
                     try:
                         thread = await asyncio.to_thread(
-                            service.users()
-                            .threads()
-                            .get(userId="me", id=tid, format="full")
-                            .execute
+                            service.users().threads().get(userId="me", id=tid, format="full").execute
                         )
                         return tid, thread, None
                     except ssl.SSLError as ssl_error:
@@ -753,9 +704,7 @@ async def list_gmail_labels(service, user_google_email: str) -> str:
     """
     logger.info(f"[list_gmail_labels] Invoked. Email: '{user_google_email}'")
 
-    response = await asyncio.to_thread(
-        service.users().labels().list(userId="me").execute
-    )
+    response = await asyncio.to_thread(service.users().labels().list(userId="me").execute)
     labels = response.get("labels", [])
 
     if not labels:
@@ -812,9 +761,7 @@ async def manage_gmail_label(
     Returns:
         str: Confirmation message of the label operation.
     """
-    logger.info(
-        f"[manage_gmail_label] Invoked. Email: '{user_google_email}', Action: '{action}'"
-    )
+    logger.info(f"[manage_gmail_label] Invoked. Email: '{user_google_email}', Action: '{action}'")
 
     if action == "create" and not name:
         raise Exception("Label name is required for create action.")
@@ -828,15 +775,11 @@ async def manage_gmail_label(
             "labelListVisibility": label_list_visibility,
             "messageListVisibility": message_list_visibility,
         }
-        created_label = await asyncio.to_thread(
-            service.users().labels().create(userId="me", body=label_object).execute
-        )
+        created_label = await asyncio.to_thread(service.users().labels().create(userId="me", body=label_object).execute)
         return f"Label created successfully!\nName: {created_label['name']}\nID: {created_label['id']}"
 
     elif action == "update":
-        current_label = await asyncio.to_thread(
-            service.users().labels().get(userId="me", id=label_id).execute
-        )
+        current_label = await asyncio.to_thread(service.users().labels().get(userId="me", id=label_id).execute)
 
         label_object = {
             "id": label_id,
@@ -846,22 +789,15 @@ async def manage_gmail_label(
         }
 
         updated_label = await asyncio.to_thread(
-            service.users()
-            .labels()
-            .update(userId="me", id=label_id, body=label_object)
-            .execute
+            service.users().labels().update(userId="me", id=label_id, body=label_object).execute
         )
         return f"Label updated successfully!\nName: {updated_label['name']}\nID: {updated_label['id']}"
 
     elif action == "delete":
-        label = await asyncio.to_thread(
-            service.users().labels().get(userId="me", id=label_id).execute
-        )
+        label = await asyncio.to_thread(service.users().labels().get(userId="me", id=label_id).execute)
         label_name = label["name"]
 
-        await asyncio.to_thread(
-            service.users().labels().delete(userId="me", id=label_id).execute
-        )
+        await asyncio.to_thread(service.users().labels().delete(userId="me", id=label_id).execute)
         return f"Label '{label_name}' (ID: {label_id}) deleted successfully!"
 
 
@@ -887,14 +823,10 @@ async def modify_gmail_message_labels(
     Returns:
         str: Confirmation message of the label changes applied to the message.
     """
-    logger.info(
-        f"[modify_gmail_message_labels] Invoked. Email: '{user_google_email}', Message ID: '{message_id}'"
-    )
+    logger.info(f"[modify_gmail_message_labels] Invoked. Email: '{user_google_email}', Message ID: '{message_id}'")
 
     if not add_label_ids and not remove_label_ids:
-        raise Exception(
-            "At least one of add_label_ids or remove_label_ids must be provided."
-        )
+        raise Exception("At least one of add_label_ids or remove_label_ids must be provided.")
 
     body = {}
     if add_label_ids:
@@ -902,9 +834,7 @@ async def modify_gmail_message_labels(
     if remove_label_ids:
         body["removeLabelIds"] = remove_label_ids
 
-    await asyncio.to_thread(
-        service.users().messages().modify(userId="me", id=message_id, body=body).execute
-    )
+    await asyncio.to_thread(service.users().messages().modify(userId="me", id=message_id, body=body).execute)
 
     actions = []
     if add_label_ids:
@@ -942,9 +872,7 @@ async def batch_modify_gmail_message_labels(
     )
 
     if not add_label_ids and not remove_label_ids:
-        raise Exception(
-            "At least one of add_label_ids or remove_label_ids must be provided."
-        )
+        raise Exception("At least one of add_label_ids or remove_label_ids must be provided.")
 
     body = {"ids": message_ids}
     if add_label_ids:
@@ -952,9 +880,7 @@ async def batch_modify_gmail_message_labels(
     if remove_label_ids:
         body["removeLabelIds"] = remove_label_ids
 
-    await asyncio.to_thread(
-        service.users().messages().batchModify(userId="me", body=body).execute
-    )
+    await asyncio.to_thread(service.users().messages().batchModify(userId="me", body=body).execute)
 
     actions = []
     if add_label_ids:

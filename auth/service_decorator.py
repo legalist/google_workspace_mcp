@@ -89,9 +89,7 @@ _service_cache: Dict[str, tuple[Any, datetime, str]] = {}
 _cache_ttl = timedelta(minutes=30)  # Cache services for 30 minutes
 
 
-def _get_cache_key(
-    user_email: str, service_name: str, version: str, scopes: List[str]
-) -> str:
+def _get_cache_key(user_email: str, service_name: str, version: str, scopes: List[str]) -> str:
     """Generate a cache key for service instances."""
     sorted_scopes = sorted(scopes)
     return f"{user_email}:{service_name}:{version}:{':'.join(sorted_scopes)}"
@@ -139,9 +137,7 @@ def _resolve_scopes(scopes: Union[str, List[str]]) -> List[str]:
     return resolved
 
 
-def _handle_token_refresh_error(
-    error: RefreshError, user_email: str, service_name: str
-) -> str:
+def _handle_token_refresh_error(error: RefreshError, user_email: str, service_name: str) -> str:
     """
     Handle token refresh errors gracefully, particularly expired/revoked tokens.
 
@@ -155,13 +151,8 @@ def _handle_token_refresh_error(
     """
     error_str = str(error)
 
-    if (
-        "invalid_grant" in error_str.lower()
-        or "expired or revoked" in error_str.lower()
-    ):
-        logger.warning(
-            f"Token expired or revoked for user {user_email} accessing {service_name}"
-        )
+    if "invalid_grant" in error_str.lower() or "expired or revoked" in error_str.lower():
+        logger.warning(f"Token expired or revoked for user {user_email} accessing {service_name}")
 
         # Clear any cached service for this user to force fresh authentication
         clear_service_cache(user_email)
@@ -241,9 +232,7 @@ def require_google_service(
             if not user_google_email:
                 # This should ideally not be reached if 'user_google_email' is a required parameter
                 # in the function signature, but it's a good safeguard.
-                raise Exception(
-                    "'user_google_email' parameter is required but was not found."
-                )
+                raise Exception("'user_google_email' parameter is required but was not found.")
 
             # Get service configuration from the decorator's arguments
             if service_type not in SERVICE_CONFIGS:
@@ -261,9 +250,7 @@ def require_google_service(
             actual_user_email = user_google_email
 
             if cache_enabled:
-                cache_key = _get_cache_key(
-                    user_google_email, service_name, service_version, resolved_scopes
-                )
+                cache_key = _get_cache_key(user_google_email, service_name, service_version, resolved_scopes)
                 cached_result = _get_cached_service(cache_key)
                 if cached_result:
                     service, actual_user_email = cached_result
@@ -294,9 +281,7 @@ def require_google_service(
                 # Prepend the fetched service object to the original arguments
                 return await func(service, *args, **kwargs)
             except RefreshError as e:
-                error_message = _handle_token_refresh_error(
-                    e, actual_user_email, service_name
-                )
+                error_message = _handle_token_refresh_error(e, actual_user_email, service_name)
                 raise Exception(error_message)
 
         # Set the wrapper's signature to the one without 'service'
@@ -383,9 +368,7 @@ def require_multiple_services(service_configs: List[Dict[str, Any]]):
                 return await func(*args, **kwargs)
             except RefreshError as e:
                 # Handle token refresh errors gracefully
-                error_message = _handle_token_refresh_error(
-                    e, user_google_email, "Multiple Services"
-                )
+                error_message = _handle_token_refresh_error(e, user_google_email, "Multiple Services")
                 raise Exception(error_message)
 
         return wrapper
@@ -411,15 +394,11 @@ def clear_service_cache(user_email: Optional[str] = None) -> int:
         logger.info(f"Cleared all {count} service cache entries")
         return count
 
-    keys_to_remove = [
-        key for key in _service_cache.keys() if key.startswith(f"{user_email}:")
-    ]
+    keys_to_remove = [key for key in _service_cache.keys() if key.startswith(f"{user_email}:")]
     for key in keys_to_remove:
         del _service_cache[key]
 
-    logger.info(
-        f"Cleared {len(keys_to_remove)} service cache entries for user {user_email}"
-    )
+    logger.info(f"Cleared {len(keys_to_remove)} service cache entries for user {user_email}")
     return len(keys_to_remove)
 
 

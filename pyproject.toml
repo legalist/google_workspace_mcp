@@ -60,3 +60,25 @@ workspace-mcp = "main:main"
 [tool.setuptools]
 packages = [ "auth", "gcalendar", "core", "gdocs", "gdrive", "gmail", "gchat", "gsheets", "gforms", "gslides", "gtasks"]
 py-modules = [ "main"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+fix = true
+extend-exclude = [
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".tox",
+    ".venv",
+    ".env",
+    "env",
+    "venv",
+    ".venv3",
+    "venv3",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+]
+[tool.ruff.format]

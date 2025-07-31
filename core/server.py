@@ -124,16 +124,12 @@ async def oauth2_callback(request: Request) -> HTMLResponse:
     error = request.query_params.get("error")
 
     if error:
-        error_message = (
-            f"Authentication failed: Google returned an error: {error}. State: {state}."
-        )
+        error_message = f"Authentication failed: Google returned an error: {error}. State: {state}."
         logger.error(error_message)
         return create_error_response(error_message)
 
     if not code:
-        error_message = (
-            "Authentication failed: No authorization code received from Google."
-        )
+        error_message = "Authentication failed: No authorization code received from Google."
         logger.error(error_message)
         return create_error_response(error_message)
 
@@ -143,9 +139,7 @@ async def oauth2_callback(request: Request) -> HTMLResponse:
         if error_message:
             return create_server_error_response(error_message)
 
-        logger.info(
-            f"OAuth callback: Received code (state: {state}). Attempting to exchange for tokens."
-        )
+        logger.info(f"OAuth callback: Received code (state: {state}). Attempting to exchange for tokens.")
 
         # Session ID tracking removed - not needed
 
@@ -158,26 +152,20 @@ async def oauth2_callback(request: Request) -> HTMLResponse:
             session_id=None,  # Session ID tracking removed
         )
 
-        logger.info(
-            f"OAuth callback: Successfully authenticated user: {verified_user_id} (state: {state})."
-        )
+        logger.info(f"OAuth callback: Successfully authenticated user: {verified_user_id} (state: {state}).")
 
         # Return success page using shared template
         return create_success_response(verified_user_id)
 
     except Exception as e:
-        error_message_detail = (
-            f"Error processing OAuth callback (state: {state}): {str(e)}"
-        )
+        error_message_detail = f"Error processing OAuth callback (state: {state}): {str(e)}"
         logger.error(error_message_detail, exc_info=True)
         # Generic error page for any other issues during token exchange or credential saving
         return create_server_error_response(str(e))
 
 
 @server.tool()
-async def start_google_auth(
-    service_name: str, user_google_email: str = USER_GOOGLE_EMAIL
-) -> str:
+async def start_google_auth(service_name: str, user_google_email: str = USER_GOOGLE_EMAIL) -> str:
     """
     Initiates the Google OAuth 2.0 authentication flow for the specified user email and service.
     This is the primary method to establish credentials when no valid session exists or when targeting a specific account for a particular service.
@@ -202,11 +190,7 @@ async def start_google_auth(
     Returns:
         str: A detailed message for the LLM with the authorization URL and instructions to guide the user through the authentication process.
     """
-    if (
-        not user_google_email
-        or not isinstance(user_google_email, str)
-        or "@" not in user_google_email
-    ):
+    if not user_google_email or not isinstance(user_google_email, str) or "@" not in user_google_email:
         error_msg = "Invalid or missing 'user_google_email'. This parameter is required and must be a valid email address. LLM, please ask the user for their Google email address."
         logger.error(f"[start_google_auth] {error_msg}")
         raise Exception(error_msg)

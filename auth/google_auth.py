@@ -45,9 +45,7 @@ DEFAULT_CREDENTIALS_DIR = get_default_credentials_dir()
 # This should be more robust in a production system once OAuth2.1 is implemented in client.
 _SESSION_CREDENTIALS_CACHE: Dict[str, Credentials] = {}
 # Centralized Client Secrets Path Logic
-_client_secrets_env = os.getenv("GOOGLE_CLIENT_SECRET_PATH") or os.getenv(
-    "GOOGLE_CLIENT_SECRETS"
-)
+_client_secrets_env = os.getenv("GOOGLE_CLIENT_SECRET_PATH") or os.getenv("GOOGLE_CLIENT_SECRETS")
 if _client_secrets_env:
     CONFIG_CLIENT_SECRETS_PATH = _client_secrets_env
 else:
@@ -92,18 +90,14 @@ def _find_any_credentials(
                 logger.info(f"[single-user] Found credentials in {filepath}")
                 return credentials
             except (IOError, json.JSONDecodeError, KeyError) as e:
-                logger.warning(
-                    f"[single-user] Error loading credentials from {filepath}: {e}"
-                )
+                logger.warning(f"[single-user] Error loading credentials from {filepath}: {e}")
                 continue
 
     logger.info(f"[single-user] No valid credentials found in {base_dir}")
     return None
 
 
-def _get_user_credential_path(
-    user_google_email: str, base_dir: str = DEFAULT_CREDENTIALS_DIR
-) -> str:
+def _get_user_credential_path(user_google_email: str, base_dir: str = DEFAULT_CREDENTIALS_DIR) -> str:
     """Constructs the path to a user's credential file."""
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)
@@ -132,9 +126,7 @@ def save_credentials_to_file(
             json.dump(creds_data, f)
         logger.info(f"Credentials saved for user {user_google_email} to {creds_path}")
     except IOError as e:
-        logger.error(
-            f"Error saving credentials for user {user_google_email} to {creds_path}: {e}"
-        )
+        logger.error(f"Error saving credentials for user {user_google_email} to {creds_path}: {e}")
         raise
 
 
@@ -150,9 +142,7 @@ def load_credentials_from_file(
     """Loads user credentials from a file."""
     creds_path = _get_user_credential_path(user_google_email, base_dir)
     if not os.path.exists(creds_path):
-        logger.info(
-            f"No credentials file found for user {user_google_email} at {creds_path}"
-        )
+        logger.info(f"No credentials file found for user {user_google_email} at {creds_path}")
         return None
 
     try:
@@ -165,9 +155,7 @@ def load_credentials_from_file(
             try:
                 expiry = datetime.fromisoformat(creds_data["expiry"])
             except (ValueError, TypeError) as e:
-                logger.warning(
-                    f"Could not parse expiry time for {user_google_email}: {e}"
-                )
+                logger.warning(f"Could not parse expiry time for {user_google_email}: {e}")
 
         credentials = Credentials(
             token=creds_data.get("token"),
@@ -178,14 +166,10 @@ def load_credentials_from_file(
             scopes=creds_data.get("scopes"),
             expiry=expiry,
         )
-        logger.debug(
-            f"Credentials loaded for user {user_google_email} from {creds_path}"
-        )
+        logger.debug(f"Credentials loaded for user {user_google_email} from {creds_path}")
         return credentials
     except (IOError, json.JSONDecodeError, KeyError) as e:
-        logger.error(
-            f"Error loading or parsing credentials for user {user_google_email} from {creds_path}: {e}"
-        )
+        logger.error(f"Error loading or parsing credentials for user {user_google_email} from {creds_path}: {e}")
         return None
 
 
@@ -193,13 +177,9 @@ def load_credentials_from_session(session_id: str) -> Optional[Credentials]:
     """Loads user credentials from the in-memory session cache."""
     credentials = _SESSION_CREDENTIALS_CACHE.get(session_id)
     if credentials:
-        logger.debug(
-            f"Credentials loaded from session cache for session_id: {session_id}"
-        )
+        logger.debug(f"Credentials loaded from session cache for session_id: {session_id}")
     else:
-        logger.debug(
-            f"No credentials found in session cache for session_id: {session_id}"
-        )
+        logger.debug(f"No credentials found in session cache for session_id: {session_id}")
     return credentials
 
 
@@ -274,19 +254,13 @@ def load_client_secrets(client_secrets_path: str) -> Dict[str, Any]:
             client_config = json.load(f)
             # The file usually contains a top-level key like "web" or "installed"
             if "web" in client_config:
-                logger.info(
-                    f"Loaded OAuth client credentials from file: {client_secrets_path}"
-                )
+                logger.info(f"Loaded OAuth client credentials from file: {client_secrets_path}")
                 return client_config["web"]
             elif "installed" in client_config:
-                logger.info(
-                    f"Loaded OAuth client credentials from file: {client_secrets_path}"
-                )
+                logger.info(f"Loaded OAuth client credentials from file: {client_secrets_path}")
                 return client_config["installed"]
             else:
-                logger.error(
-                    f"Client secrets file {client_secrets_path} has unexpected format."
-                )
+                logger.error(f"Client secrets file {client_secrets_path} has unexpected format.")
                 raise ValueError("Invalid client secrets file format")
     except (IOError, json.JSONDecodeError) as e:
         logger.error(f"Error loading client secrets file {client_secrets_path}: {e}")
@@ -310,17 +284,13 @@ def check_client_secrets() -> Optional[str]:
     return None
 
 
-def create_oauth_flow(
-    scopes: List[str], redirect_uri: str, state: Optional[str] = None
-) -> Flow:
+def create_oauth_flow(scopes: List[str], redirect_uri: str, state: Optional[str] = None) -> Flow:
     """Creates an OAuth flow using environment variables or client secrets file."""
     # Try environment variables first
     env_config = load_client_secrets_from_env()
     if env_config:
         # Use client config directly
-        flow = Flow.from_client_config(
-            env_config, scopes=scopes, redirect_uri=redirect_uri, state=state
-        )
+        flow = Flow.from_client_config(env_config, scopes=scopes, redirect_uri=redirect_uri, state=state)
         logger.debug("Created OAuth flow from environment variables")
         return flow
 
@@ -336,9 +306,7 @@ def create_oauth_flow(
         redirect_uri=redirect_uri,
         state=state,
     )
-    logger.debug(
-        f"Created OAuth flow from client secrets file: {CONFIG_CLIENT_SECRETS_PATH}"
-    )
+    logger.debug(f"Created OAuth flow from client secrets file: {CONFIG_CLIENT_SECRETS_PATH}")
     return flow
 
 
@@ -365,19 +333,11 @@ async def start_auth_flow(
         Exception: If the OAuth flow cannot be initiated.
     """
     initial_email_provided = bool(
-        user_google_email
-        and user_google_email.strip()
-        and user_google_email.lower() != "default"
+        user_google_email and user_google_email.strip() and user_google_email.lower() != "default"
     )
-    user_display_name = (
-        f"{service_name} for '{user_google_email}'"
-        if initial_email_provided
-        else service_name
-    )
+    user_display_name = f"{service_name} for '{user_google_email}'" if initial_email_provided else service_name
 
-    logger.info(
-        f"[start_auth_flow] Initiating auth for {user_display_name} with global SCOPES."
-    )
+    logger.info(f"[start_auth_flow] Initiating auth for {user_display_name} with global SCOPES.")
 
     # Import here to avoid circular imports
     from auth.oauth_callback_server import ensure_oauth_callback_available
@@ -401,9 +361,7 @@ async def start_auth_flow(
         if "OAUTHLIB_INSECURE_TRANSPORT" not in os.environ and (
             "localhost" in redirect_uri or "127.0.0.1" in redirect_uri
         ):  # Use passed redirect_uri
-            logger.warning(
-                "OAUTHLIB_INSECURE_TRANSPORT not set. Setting it for localhost/local development."
-            )
+            logger.warning("OAUTHLIB_INSECURE_TRANSPORT not set. Setting it for localhost/local development.")
             os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
         oauth_state = os.urandom(16).hex()
@@ -467,9 +425,7 @@ def handle_auth_callback(
     redirect_uri: str,
     credentials_base_dir: str = DEFAULT_CREDENTIALS_DIR,
     session_id: Optional[str] = None,
-    client_secrets_path: Optional[
-        str
-    ] = None,  # Deprecated: kept for backward compatibility
+    client_secrets_path: Optional[str] = None,  # Deprecated: kept for backward compatibility
 ) -> Tuple[str, Credentials]:
     """
     Handles the callback from Google, exchanges the code for credentials,
@@ -501,9 +457,7 @@ def handle_auth_callback(
 
         # Allow HTTP for localhost in development
         if "OAUTHLIB_INSECURE_TRANSPORT" not in os.environ:
-            logger.warning(
-                "OAUTHLIB_INSECURE_TRANSPORT not set. Setting it for localhost development."
-            )
+            logger.warning("OAUTHLIB_INSECURE_TRANSPORT not set. Setting it for localhost development.")
             os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
         flow = create_oauth_flow(scopes=scopes, redirect_uri=redirect_uri)
@@ -561,14 +515,10 @@ def get_credentials(
     """
     # Check for single-user mode
     if os.getenv("MCP_SINGLE_USER_MODE") == "1":
-        logger.info(
-            "[get_credentials] Single-user mode: bypassing session mapping, finding any credentials"
-        )
+        logger.info("[get_credentials] Single-user mode: bypassing session mapping, finding any credentials")
         credentials = _find_any_credentials(credentials_base_dir)
         if not credentials:
-            logger.info(
-                f"[get_credentials] Single-user mode: No credentials found in {credentials_base_dir}"
-            )
+            logger.info(f"[get_credentials] Single-user mode: No credentials found in {credentials_base_dir}")
             return None
 
         # In single-user mode, if user_google_email wasn't provided, try to get it from user info
@@ -582,9 +532,7 @@ def get_credentials(
                         f"[get_credentials] Single-user mode: extracted user email {user_google_email} from credentials"
                     )
             except Exception as e:
-                logger.debug(
-                    f"[get_credentials] Single-user mode: could not extract user email: {e}"
-                )
+                logger.debug(f"[get_credentials] Single-user mode: could not extract user email: {e}")
     else:
         credentials: Optional[Credentials] = None
 
@@ -599,24 +547,18 @@ def get_credentials(
         if session_id:
             credentials = load_credentials_from_session(session_id)
             if credentials:
-                logger.debug(
-                    f"[get_credentials] Loaded credentials from session for session_id '{session_id}'."
-                )
+                logger.debug(f"[get_credentials] Loaded credentials from session for session_id '{session_id}'.")
 
         if not credentials and user_google_email:
             logger.debug(
                 f"[get_credentials] No session credentials, trying file for user_google_email '{user_google_email}'."
             )
-            credentials = load_credentials_from_file(
-                user_google_email, credentials_base_dir
-            )
+            credentials = load_credentials_from_file(user_google_email, credentials_base_dir)
             if credentials and session_id:
                 logger.debug(
                     f"[get_credentials] Loaded from file for user '{user_google_email}', caching to session '{session_id}'."
                 )
-                save_credentials_to_session(
-                    session_id, credentials
-                )  # Cache for current session
+                save_credentials_to_session(session_id, credentials)  # Cache for current session
 
         if not credentials:
             logger.info(
@@ -639,23 +581,17 @@ def get_credentials(
     )
 
     if credentials.valid:
-        logger.debug(
-            f"[get_credentials] Credentials are valid. User: '{user_google_email}', Session: '{session_id}'"
-        )
+        logger.debug(f"[get_credentials] Credentials are valid. User: '{user_google_email}', Session: '{session_id}'")
         return credentials
     elif credentials.expired and credentials.refresh_token:
         logger.info(
             f"[get_credentials] Credentials expired. Attempting refresh. User: '{user_google_email}', Session: '{session_id}'"
         )
         if not client_secrets_path:
-            logger.error(
-                "[get_credentials] Client secrets path required for refresh but not provided."
-            )
+            logger.error("[get_credentials] Client secrets path required for refresh but not provided.")
             return None
         try:
-            logger.debug(
-                f"[get_credentials] Refreshing token using client_secrets_path: {client_secrets_path}"
-            )
+            logger.debug(f"[get_credentials] Refreshing token using client_secrets_path: {client_secrets_path}")
             # client_config = load_client_secrets(client_secrets_path) # Not strictly needed if creds have client_id/secret
             credentials.refresh(Request())
             logger.info(
@@ -664,9 +600,7 @@ def get_credentials(
 
             # Save refreshed credentials
             if user_google_email:  # Always save to file if email is known
-                save_credentials_to_file(
-                    user_google_email, credentials, credentials_base_dir
-                )
+                save_credentials_to_file(user_google_email, credentials, credentials_base_dir)
             if session_id:  # Update session cache if it was the source or is active
                 save_credentials_to_session(session_id, credentials)
             return credentials
@@ -745,9 +679,7 @@ async def get_authenticated_google_service(
     Raises:
         GoogleAuthenticationError: When authentication is required or fails
     """
-    logger.info(
-        f"[{tool_name}] Attempting to get authenticated {service_name} service. Email: '{user_google_email}'"
-    )
+    logger.info(f"[{tool_name}] Attempting to get authenticated {service_name} service. Email: '{user_google_email}'")
 
     # Validate email format
     if not user_google_email or "@" not in user_google_email:
@@ -764,12 +696,8 @@ async def get_authenticated_google_service(
     )
 
     if not credentials or not credentials.valid:
-        logger.warning(
-            f"[{tool_name}] No valid credentials. Email: '{user_google_email}'."
-        )
-        logger.info(
-            f"[{tool_name}] Valid email '{user_google_email}' provided, initiating auth flow."
-        )
+        logger.warning(f"[{tool_name}] No valid credentials. Email: '{user_google_email}'.")
+        logger.info(f"[{tool_name}] Valid email '{user_google_email}' provided, initiating auth flow.")
 
         # Import here to avoid circular import
         from core.server import get_oauth_redirect_uri_for_current_mode
@@ -796,9 +724,7 @@ async def get_authenticated_google_service(
         if credentials and credentials.id_token:
             try:
                 # Decode without verification (just to get email for logging)
-                decoded_token = jwt.decode(
-                    credentials.id_token, options={"verify_signature": False}
-                )
+                decoded_token = jwt.decode(credentials.id_token, options={"verify_signature": False})
                 token_email = decoded_token.get("email")
                 if token_email:
                     log_user_email = token_email
@@ -806,9 +732,7 @@ async def get_authenticated_google_service(
             except Exception as e:
                 logger.debug(f"[{tool_name}] Could not decode id_token: {e}")
 
-        logger.info(
-            f"[{tool_name}] Successfully authenticated {service_name} service for user: {log_user_email}"
-        )
+        logger.info(f"[{tool_name}] Successfully authenticated {service_name} service for user: {log_user_email}")
         return service, log_user_email
 
     except Exception as e:

@@ -3,9 +3,7 @@ import contextvars
 from typing import Optional
 
 # Context variable to hold injected credentials for the life of a single request.
-_injected_oauth_credentials = contextvars.ContextVar(
-    "injected_oauth_credentials", default=None
-)
+_injected_oauth_credentials = contextvars.ContextVar("injected_oauth_credentials", default=None)
 
 
 def get_injected_oauth_credentials():

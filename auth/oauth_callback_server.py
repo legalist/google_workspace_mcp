@@ -61,9 +61,7 @@ class MinimalOAuthServer:
                 return create_error_response(error_message)
 
             if not code:
-                error_message = (
-                    "Authentication failed: No authorization code received from Google."
-                )
+                error_message = "Authentication failed: No authorization code received from Google."
                 logger.error(error_message)
                 return create_error_response(error_message)
 
@@ -73,16 +71,12 @@ class MinimalOAuthServer:
                 if error_message:
                     return create_server_error_response(error_message)
 
-                logger.info(
-                    f"OAuth callback: Received code (state: {state}). Attempting to exchange for tokens."
-                )
+                logger.info(f"OAuth callback: Received code (state: {state}). Attempting to exchange for tokens.")
 
                 # Session ID tracking removed - not needed
 
                 # Exchange code for credentials
-                redirect_uri = get_oauth_redirect_uri(
-                    port=self.port, base_uri=self.base_uri
-                )
+                redirect_uri = get_oauth_redirect_uri(port=self.port, base_uri=self.base_uri)
                 verified_user_id, credentials = handle_auth_callback(
                     scopes=SCOPES,
                     authorization_response=str(request.url),
@@ -90,17 +84,13 @@ class MinimalOAuthServer:
                     session_id=None,
                 )
 
-                logger.info(
-                    f"OAuth callback: Successfully authenticated user: {verified_user_id} (state: {state})."
-                )
+                logger.info(f"OAuth callback: Successfully authenticated user: {verified_user_id} (state: {state}).")
 
                 # Return success page using shared template
                 return create_success_response(verified_user_id)
 
             except Exception as e:
-                error_message_detail = (
-                    f"Error processing OAuth callback (state: {state}): {str(e)}"
-                )
+                error_message_detail = f"Error processing OAuth callback (state: {state}): {str(e)}"
                 logger.error(error_message_detail, exc_info=True)
                 return create_server_error_response(str(e))
 
@@ -161,9 +151,7 @@ class MinimalOAuthServer:
                     result = s.connect_ex((hostname, self.port))
                     if result == 0:
                         self.is_running = True
-                        logger.info(
-                            f"Minimal OAuth server started on {hostname}:{self.port}"
-                        )
+                        logger.info(f"Minimal OAuth server started on {hostname}:{self.port}")
                         return True, ""
             except Exception:
                 pass
@@ -215,9 +203,7 @@ def get_oauth_redirect_uri(port: int = 8000, base_uri: str = "http://localhost")
     # Highest priority: Use the environment variable if it's set
     env_redirect_uri = os.getenv("GOOGLE_OAUTH_REDIRECT_URI")
     if env_redirect_uri:
-        logger.info(
-            f"Using redirect URI from GOOGLE_OAUTH_REDIRECT_URI: {env_redirect_uri}"
-        )
+        logger.info(f"Using redirect URI from GOOGLE_OAUTH_REDIRECT_URI: {env_redirect_uri}")
         return env_redirect_uri
 
     # Fallback to constructing the URI based on server settings
@@ -247,9 +233,7 @@ def ensure_oauth_callback_available(
 
     if transport_mode == "streamable-http":
         # In streamable-http mode, the main FastAPI server should handle callbacks
-        logger.debug(
-            "Using existing FastAPI server for OAuth callbacks (streamable-http mode)"
-        )
+        logger.debug("Using existing FastAPI server for OAuth callbacks (streamable-http mode)")
         return True, ""
 
     elif transport_mode == "stdio":
@@ -262,14 +246,10 @@ def ensure_oauth_callback_available(
             logger.info("Starting minimal OAuth server for stdio mode")
             success, error_msg = _minimal_oauth_server.start()
             if success:
-                logger.info(
-                    f"Minimal OAuth server successfully started on {base_uri}:{port}"
-                )
+                logger.info(f"Minimal OAuth server successfully started on {base_uri}:{port}")
                 return True, ""
             else:
-                logger.error(
-                    f"Failed to start minimal OAuth server on {base_uri}:{port}: {error_msg}"
-                )
+                logger.error(f"Failed to start minimal OAuth server on {base_uri}:{port}: {error_msg}")
                 return False, error_msg
         else:
             logger.info("Minimal OAuth server is already running")

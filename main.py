@@ -8,9 +8,7 @@ from importlib import metadata
 from core.server import server, set_transport_mode
 from core.utils import check_credentials_directory_permissions
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 try:
@@ -30,9 +28,7 @@ try:
 
     logger.debug(f"Detailed file logging configured to: {log_file_path}")
 except Exception as e:
-    sys.stderr.write(
-        f"CRITICAL: Failed to set up file logging to '{log_file_path}': {e}\n"
-    )
+    sys.stderr.write(f"CRITICAL: Failed to set up file logging to '{log_file_path}': {e}\n")
 
 
 def safe_print(text):
@@ -132,14 +128,10 @@ def main():
 
     # Import specified tools or all tools if none specified
     tools_to_import = args.tools if args.tools is not None else tool_imports.keys()
-    safe_print(
-        f"🛠️  Loading {len(tools_to_import)} tool module{'s' if len(tools_to_import) != 1 else ''}:"
-    )
+    safe_print(f"🛠️  Loading {len(tools_to_import)} tool module{'s' if len(tools_to_import) != 1 else ''}:")
     for tool in tools_to_import:
         tool_imports[tool]()
-        safe_print(
-            f"   {tool_icons[tool]} {tool.title()} - Google {tool.title()} API integration"
-        )
+        safe_print(f"   {tool_icons[tool]} {tool.title()} - Google {tool.title()} API integration")
     safe_print("")
 
     safe_print("📊 Configuration Summary:")
@@ -162,9 +154,7 @@ def main():
         safe_print("")
     except (PermissionError, OSError) as e:
         safe_print(f"❌ Credentials directory permission check failed: {e}")
-        safe_print(
-            "   Please ensure the service has write permissions to create/access the credentials directory"
-        )
+        safe_print("   Please ensure the service has write permissions to create/access the credentials directory")
         logger.error(f"Failed credentials directory permission check: {e}")
         sys.exit(1)
 
@@ -179,13 +169,9 @@ def main():
             # Start minimal OAuth callback server for stdio mode
             from auth.oauth_callback_server import ensure_oauth_callback_available
 
-            success, error_msg = ensure_oauth_callback_available(
-                "stdio", port, base_uri
-            )
+            success, error_msg = ensure_oauth_callback_available("stdio", port, base_uri)
             if success:
-                safe_print(
-                    f"   OAuth callback server started on {base_uri}:{port}/oauth2callback"
-                )
+                safe_print(f"   OAuth callback server started on {base_uri}:{port}/oauth2callback")
             else:
                 warning_msg = f"   ⚠️  Warning: Failed to start OAuth callback server"
                 if error_msg:

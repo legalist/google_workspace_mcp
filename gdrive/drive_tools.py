@@ -28,9 +28,7 @@ DRIVE_QUERY_PATTERNS = [
     re.compile(r"\bhas\s*\{", re.IGNORECASE),  # has {properties}
     re.compile(r"\btrashed\s*=\s*(true|false)\b", re.IGNORECASE),  # trashed=true/false
     re.compile(r"\bstarred\s*=\s*(true|false)\b", re.IGNORECASE),  # starred=true/false
-    re.compile(
-        r'[\'"][^\'"]+[\'"]\s+in\s+parents', re.IGNORECASE
-    ),  # 'parentId' in parents
+    re.compile(r'[\'"][^\'"]+[\'"]\s+in\s+parents', re.IGNORECASE),  # 'parentId' in parents
     re.compile(r"\bfullText\s+contains\b", re.IGNORECASE),  # fullText contains
     re.compile(r"\bname\s*(=|contains)\b", re.IGNORECASE),  # name = or name contains
     re.compile(r"\bmimeType\s*(=|!=)\b", re.IGNORECASE),  # mimeType operators
@@ -105,9 +103,7 @@ async def search_drive_files(
     Returns:
         str: A formatted list of found files/folders with their details (ID, name, type, size, modified time, link).
     """
-    logger.info(
-        f"[search_drive_files] Invoked. Email: '{user_google_email}', Query: '{query}'"
-    )
+    logger.info(f"[search_drive_files] Invoked. Email: '{user_google_email}', Query: '{query}'")
 
     # Check if the query looks like a structured Drive query or free text
     # Look for Drive API operators and structured query patterns
@@ -115,16 +111,12 @@ async def search_drive_files(
 
     if is_structured_query:
         final_query = query
-        logger.info(
-            f"[search_drive_files] Using structured query as-is: '{final_query}'"
-        )
+        logger.info(f"[search_drive_files] Using structured query as-is: '{final_query}'")
     else:
         # For free text queries, wrap in fullText contains
         escaped_query = query.replace("'", "\\'")
         final_query = f"fullText contains '{escaped_query}'"
-        logger.info(
-            f"[search_drive_files] Reformatting free text query '{query}' to '{final_query}'"
-        )
+        logger.info(f"[search_drive_files] Reformatting free text query '{query}' to '{final_query}'")
 
     list_params = _build_drive_list_params(
         query=final_query,
@@ -139,9 +131,7 @@ async def search_drive_files(
     if not files:
         return f"No files found for '{query}'."
 
-    formatted_files_text_parts = [
-        f"Found {len(files)} files for {user_google_email} matching '{query}':"
-    ]
+    formatted_files_text_parts = [f"Found {len(files)} files for {user_google_email} matching '{query}':"]
     for item in files:
         size_str = f", Size: {item.get('size', 'N/A')}" if "size" in item else ""
         formatted_files_text_parts.append(
@@ -233,8 +223,7 @@ async def get_drive_file_content(
             body_text = file_content_bytes.decode("utf-8")
         except UnicodeDecodeError:
             body_text = (
-                f"[Binary or unsupported text encoding for mimeType '{mime_type}' - "
-                f"{len(file_content_bytes)} bytes]"
+                f"[Binary or unsupported text encoding for mimeType '{mime_type}' - {len(file_content_bytes)} bytes]"
             )
 
     # Assemble response
@@ -273,9 +262,7 @@ async def list_drive_items(
     Returns:
         str: A formatted list of files/folders in the specified folder.
     """
-    logger.info(
-        f"[list_drive_items] Invoked. Email: '{user_google_email}', Folder ID: '{folder_id}'"
-    )
+    logger.info(f"[list_drive_items] Invoked. Email: '{user_google_email}', Folder ID: '{folder_id}'")
 
     final_query = f"'{folder_id}' in parents and trashed=false"
 
@@ -292,9 +279,7 @@ async def list_drive_items(
     if not files:
         return f"No items found in folder '{folder_id}'."
 
-    formatted_items_text_parts = [
-        f"Found {len(files)} items in folder '{folder_id}' for {user_google_email}:"
-    ]
+    formatted_items_text_parts = [f"Found {len(files)} items in folder '{folder_id}' for {user_google_email}:"]
     for item in files:
         size_str = f", Size: {item.get('size', 'N/A')}" if "size" in item else ""
         formatted_items_text_parts.append(
@@ -345,17 +330,13 @@ async def create_drive_file(
         async with httpx.AsyncClient() as client:
             resp = await client.get(fileUrl)
             if resp.status_code != 200:
-                raise Exception(
-                    f"Failed to fetch file from URL: {fileUrl} (status {resp.status_code})"
-                )
+                raise Exception(f"Failed to fetch file from URL: {fileUrl} (status {resp.status_code})")
             file_data = await resp.aread()
             # Try to get MIME type from Content-Type header
             content_type = resp.headers.get("Content-Type")
             if content_type and content_type != "application/octet-stream":
                 mime_type = content_type
-                logger.info(
-                    f"[create_drive_file] Using MIME type from Content-Type header: {mime_type}"
-                )
+                logger.info(f"[create_drive_file] Using MIME type from Content-Type header: {mime_type}")
     elif content:
         file_data = content.encode("utf-8")
 
