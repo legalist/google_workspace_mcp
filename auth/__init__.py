@@ -27,10 +27,6 @@ from .domain_delegation import (
     DomainDelegationError,
 )
 
-# Delegation utility tools
-from .delegation_tools import (
-    check_delegation_setup,
-)
 
 # Scopes
 from .scopes import SCOPES, BASE_SCOPES
