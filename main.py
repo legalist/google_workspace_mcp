@@ -8,7 +8,10 @@ from importlib import metadata
 from core.server import server, set_transport_mode
 from core.utils import check_credentials_directory_permissions
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+# Configure logging level from environment variable
+log_level = getattr(logging, os.getenv("LOGLEVEL", "INFO").upper(), logging.DEBUG)
+
+logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 try:
@@ -58,6 +61,11 @@ def main():
         help="Run in single-user mode - bypass session mapping and use any credentials from the credentials directory",
     )
     parser.add_argument(
+        "--domain-delegation",
+        action="store_true",
+        help="Enable domain-wide delegation mode - use service account to impersonate users instead of OAuth",
+    )
+    parser.add_argument(
         "--tools",
         nargs="*",
         choices=[
@@ -97,7 +105,14 @@ def main():
     if args.transport == "streamable-http":
         safe_print(f"   🔗 URL: {base_uri}:{port}")
         safe_print(f"   🔐 OAuth Callback: {base_uri}:{port}/oauth2callback")
-    safe_print(f"   👤 Mode: {'Single-user' if args.single_user else 'Multi-user'}")
+    mode_info = []
+    if args.single_user:
+        mode_info.append("Single-user")
+    if args.domain_delegation:
+        mode_info.append("Domain-delegation")
+    if not mode_info:
+        mode_info.append("Multi-user")
+    safe_print(f"   👤 Mode: {' + '.join(mode_info)}")
     safe_print(f"   🐍 Python: {sys.version.split()[0]}")
     safe_print("")
 
@@ -136,7 +151,8 @@ def main():
 
     safe_print("📊 Configuration Summary:")
     safe_print(f"   🔧 Tools Enabled: {len(tools_to_import)}/{len(tool_imports)}")
-    safe_print("   🔑 Auth Method: OAuth 2.0 with PKCE")
+    auth_method = "Domain-wide delegation" if args.domain_delegation else "OAuth 2.0 with PKCE"
+    safe_print(f"   🔑 Auth Method: {auth_method}")
     safe_print(f"   📝 Log Level: {logging.getLogger().getEffectiveLevel()}")
     safe_print("")
 
@@ -144,6 +160,13 @@ def main():
     if args.single_user:
         os.environ["MCP_SINGLE_USER_MODE"] = "1"
         safe_print("🔐 Single-user mode enabled")
+        safe_print("")
+
+    # Set global domain delegation mode flag
+    if args.domain_delegation:
+        os.environ["MCP_DOMAIN_DELEGATION_MODE"] = "1"
+        safe_print("🔐 Domain-wide delegation mode enabled")
+        safe_print("   Using service account for user impersonation")
         safe_print("")
 
     # Check credentials directory permissions before starting

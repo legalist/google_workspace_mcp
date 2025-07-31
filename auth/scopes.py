@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # Individual OAuth Scope Constants
 USERINFO_EMAIL_SCOPE = "https://www.googleapis.com/auth/userinfo.email"
 OPENID_SCOPE = "openid"
-CALENDAR_READONLY_SCOPE = "https://www.googleapis.com/auth/calendar.readonly"
+CALENDAR_READONLY_SCOPE = "https://www.googleapis.com/auth/calendar"  # todo testing calendar creation scope
 CALENDAR_EVENTS_SCOPE = "https://www.googleapis.com/auth/calendar.events"
 
 # Google Drive scopes

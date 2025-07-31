@@ -61,7 +61,7 @@ from auth.scopes import (
 )
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 WORKSPACE_MCP_PORT = int(os.getenv("PORT", os.getenv("WORKSPACE_MCP_PORT", 8000)))
@@ -172,6 +172,8 @@ async def start_google_auth(service_name: str, user_google_email: str = USER_GOO
     It generates an authorization URL that the LLM must present to the user.
     This initiates a new authentication flow for the specified user and service.
 
+    Note: In domain delegation mode, this tool is not needed as authentication is handled automatically via service account impersonation.
+
     LLM Guidance:
     - Use this tool when you need to authenticate a user for a specific Google service (e.g., "Google Calendar", "Google Docs", "Gmail", "Google Drive")
       and don't have existing valid credentials for the session or specified email.
@@ -190,6 +192,21 @@ async def start_google_auth(service_name: str, user_google_email: str = USER_GOO
     Returns:
         str: A detailed message for the LLM with the authorization URL and instructions to guide the user through the authentication process.
     """
+    # Check if domain delegation mode is enabled
+    if os.getenv("MCP_DOMAIN_DELEGATION_MODE") == "1":
+        return (
+            f"**Domain Delegation Mode Active**\n\n"
+            f"Authentication for {service_name} is handled automatically via domain-wide delegation. "
+            f"No OAuth flow is needed. You can directly use {service_name} tools with the email '{user_google_email}'. "
+            f"Simply call the appropriate {service_name.lower().replace(' ', '_')} functions directly.\n\n"
+            f"Available tools include functions like:\n"
+            f"- get_events (for Google Calendar)\n"
+            f"- search_gmail_messages (for Gmail)\n"
+            f"- list_files (for Google Drive)\n\n"
+            f"Domain delegation allows the service account to impersonate users without individual OAuth consent."
+        )
+
+    # Continue with OAuth flow for non-delegation mode
     if not user_google_email or not isinstance(user_google_email, str) or "@" not in user_google_email:
         error_msg = "Invalid or missing 'user_google_email'. This parameter is required and must be a valid email address. LLM, please ask the user for their Google email address."
         logger.error(f"[start_google_auth] {error_msg}")
