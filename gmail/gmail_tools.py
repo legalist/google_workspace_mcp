@@ -112,11 +112,13 @@ def _format_gmail_results_plain(messages: list, query: str) -> str:
     for i, msg in enumerate(messages, 1):
         # Handle potential null/undefined message objects
         if not msg or not isinstance(msg, dict):
-            lines.extend([
-                f"  {i}. Message: Invalid message data",
-                "     Error: Message object is null or malformed",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"  {i}. Message: Invalid message data",
+                    "     Error: Message object is null or malformed",
+                    "",
+                ]
+            )
             continue
 
         # Handle potential null/undefined values from Gmail API
@@ -207,7 +209,9 @@ async def search_gmail_messages(
 
 
 @server.tool()
-@handle_http_errors("get_gmail_message_content", is_read_only=True, service_type="gmail")
+@handle_http_errors(
+    "get_gmail_message_content", is_read_only=True, service_type="gmail"
+)
 @require_google_service("gmail", "gmail_read")
 async def get_gmail_message_content(
     service, message_id: str, user_google_email: str
@@ -275,7 +279,9 @@ async def get_gmail_message_content(
 
 
 @server.tool()
-@handle_http_errors("get_gmail_messages_content_batch", is_read_only=True, service_type="gmail")
+@handle_http_errors(
+    "get_gmail_messages_content_batch", is_read_only=True, service_type="gmail"
+)
 @require_google_service("gmail", "gmail_read")
 async def get_gmail_messages_content_batch(
     service,
@@ -373,7 +379,7 @@ async def get_gmail_messages_content_batch(
                     except ssl.SSLError as ssl_error:
                         if attempt < max_retries - 1:
                             # Exponential backoff: 1s, 2s, 4s
-                            delay = 2 ** attempt
+                            delay = 2**attempt
                             logger.warning(
                                 f"[get_gmail_messages_content_batch] SSL error for message {mid} on attempt {attempt + 1}: {ssl_error}. Retrying in {delay}s..."
                             )
@@ -625,7 +631,9 @@ async def get_gmail_thread_content(
 
 @server.tool()
 @require_google_service("gmail", "gmail_read")
-@handle_http_errors("get_gmail_threads_content_batch", is_read_only=True, service_type="gmail")
+@handle_http_errors(
+    "get_gmail_threads_content_batch", is_read_only=True, service_type="gmail"
+)
 async def get_gmail_threads_content_batch(
     service,
     thread_ids: List[str],
@@ -691,7 +699,7 @@ async def get_gmail_threads_content_batch(
                     except ssl.SSLError as ssl_error:
                         if attempt < max_retries - 1:
                             # Exponential backoff: 1s, 2s, 4s
-                            delay = 2 ** attempt
+                            delay = 2**attempt
                             logger.warning(
                                 f"[get_gmail_threads_content_batch] SSL error for thread {tid} on attempt {attempt + 1}: {ssl_error}. Retrying in {delay}s..."
                             )

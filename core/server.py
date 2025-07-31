@@ -11,8 +11,15 @@ from mcp.server.fastmcp import FastMCP
 from starlette.requests import Request
 
 from auth.google_auth import handle_auth_callback, start_auth_flow, check_client_secrets
-from auth.oauth_callback_server import get_oauth_redirect_uri, ensure_oauth_callback_available
-from auth.oauth_responses import create_error_response, create_success_response, create_server_error_response
+from auth.oauth_callback_server import (
+    get_oauth_redirect_uri,
+    ensure_oauth_callback_available,
+)
+from auth.oauth_responses import (
+    create_error_response,
+    create_success_response,
+    create_server_error_response,
+)
 
 # Import shared configuration
 from auth.scopes import (
@@ -69,8 +76,9 @@ server = FastMCP(
     name="google_workspace",
     server_url=f"{WORKSPACE_MCP_BASE_URI}:{WORKSPACE_MCP_PORT}/mcp",
     port=WORKSPACE_MCP_PORT,
-    host="0.0.0.0"
+    host="0.0.0.0",
 )
+
 
 def set_transport_mode(mode: str):
     """Set the current transport mode for OAuth callback handling."""
@@ -78,25 +86,30 @@ def set_transport_mode(mode: str):
     _current_transport_mode = mode
     logger.info(f"Transport mode set to: {mode}")
 
+
 def get_oauth_redirect_uri_for_current_mode() -> str:
     """Get OAuth redirect URI based on current transport mode."""
     return get_oauth_redirect_uri(WORKSPACE_MCP_PORT, WORKSPACE_MCP_BASE_URI)
+
 
 # Health check endpoint
 @server.custom_route("/health", methods=["GET"])
 async def health_check(request: Request):
     """Health check endpoint for container orchestration."""
     from fastapi.responses import JSONResponse
+
     try:
         version = metadata.version("workspace-mcp")
     except metadata.PackageNotFoundError:
         version = "dev"
-    return JSONResponse({
-        "status": "healthy",
-        "service": "workspace-mcp",
-        "version": version,
-        "transport": _current_transport_mode
-    })
+    return JSONResponse(
+        {
+            "status": "healthy",
+            "service": "workspace-mcp",
+            "version": version,
+            "transport": _current_transport_mode,
+        }
+    )
 
 
 @server.custom_route("/oauth2callback", methods=["GET"])
@@ -111,12 +124,16 @@ async def oauth2_callback(request: Request) -> HTMLResponse:
     error = request.query_params.get("error")
 
     if error:
-        error_message = f"Authentication failed: Google returned an error: {error}. State: {state}."
+        error_message = (
+            f"Authentication failed: Google returned an error: {error}. State: {state}."
+        )
         logger.error(error_message)
         return create_error_response(error_message)
 
     if not code:
-        error_message = "Authentication failed: No authorization code received from Google."
+        error_message = (
+            "Authentication failed: No authorization code received from Google."
+        )
         logger.error(error_message)
         return create_error_response(error_message)
 
@@ -126,34 +143,40 @@ async def oauth2_callback(request: Request) -> HTMLResponse:
         if error_message:
             return create_server_error_response(error_message)
 
-        logger.info(f"OAuth callback: Received code (state: {state}). Attempting to exchange for tokens.")
+        logger.info(
+            f"OAuth callback: Received code (state: {state}). Attempting to exchange for tokens."
+        )
 
         # Session ID tracking removed - not needed
 
         # Exchange code for credentials. handle_auth_callback will save them.
         # The user_id returned here is the Google-verified email.
         verified_user_id, credentials = handle_auth_callback(
-            scopes=SCOPES, # Ensure all necessary scopes are requested
+            scopes=SCOPES,  # Ensure all necessary scopes are requested
             authorization_response=str(request.url),
             redirect_uri=get_oauth_redirect_uri_for_current_mode(),
-            session_id=None # Session ID tracking removed
+            session_id=None,  # Session ID tracking removed
         )
 
-        logger.info(f"OAuth callback: Successfully authenticated user: {verified_user_id} (state: {state}).")
+        logger.info(
+            f"OAuth callback: Successfully authenticated user: {verified_user_id} (state: {state})."
+        )
 
         # Return success page using shared template
         return create_success_response(verified_user_id)
 
     except Exception as e:
-        error_message_detail = f"Error processing OAuth callback (state: {state}): {str(e)}"
+        error_message_detail = (
+            f"Error processing OAuth callback (state: {state}): {str(e)}"
+        )
         logger.error(error_message_detail, exc_info=True)
         # Generic error page for any other issues during token exchange or credential saving
         return create_server_error_response(str(e))
 
+
 @server.tool()
 async def start_google_auth(
-    service_name: str,
-    user_google_email: str = USER_GOOGLE_EMAIL
+    service_name: str, user_google_email: str = USER_GOOGLE_EMAIL
 ) -> str:
     """
     Initiates the Google OAuth 2.0 authentication flow for the specified user email and service.
@@ -179,7 +202,11 @@ async def start_google_auth(
     Returns:
         str: A detailed message for the LLM with the authorization URL and instructions to guide the user through the authentication process.
     """
-    if not user_google_email or not isinstance(user_google_email, str) or '@' not in user_google_email:
+    if (
+        not user_google_email
+        or not isinstance(user_google_email, str)
+        or "@" not in user_google_email
+    ):
         error_msg = "Invalid or missing 'user_google_email'. This parameter is required and must be a valid email address. LLM, please ask the user for their Google email address."
         logger.error(f"[start_google_auth] {error_msg}")
         raise Exception(error_msg)
@@ -189,11 +216,15 @@ async def start_google_auth(
         logger.error(f"[start_google_auth] {error_msg}")
         raise Exception(error_msg)
 
-    logger.info(f"Tool 'start_google_auth' invoked for user_google_email: '{user_google_email}', service: '{service_name}'.")
+    logger.info(
+        f"Tool 'start_google_auth' invoked for user_google_email: '{user_google_email}', service: '{service_name}'."
+    )
 
     # Ensure OAuth callback is available for current transport mode
     redirect_uri = get_oauth_redirect_uri_for_current_mode()
-    success, error_msg = ensure_oauth_callback_available(_current_transport_mode, WORKSPACE_MCP_PORT, WORKSPACE_MCP_BASE_URI)
+    success, error_msg = ensure_oauth_callback_available(
+        _current_transport_mode, WORKSPACE_MCP_PORT, WORKSPACE_MCP_BASE_URI
+    )
     if not success:
         if error_msg:
             raise Exception(f"Failed to start OAuth callback server: {error_msg}")
@@ -203,6 +234,6 @@ async def start_google_auth(
     auth_result = await start_auth_flow(
         user_google_email=user_google_email,
         service_name=service_name,
-        redirect_uri=redirect_uri
+        redirect_uri=redirect_uri,
     )
     return auth_result

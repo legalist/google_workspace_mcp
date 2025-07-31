@@ -175,7 +175,7 @@ def extract_office_xml_text(file_bytes: bytes, mime_type: str) -> Optional[str]:
                                         member_texts.append(shared_strings[ss_idx])
                                     else:
                                         logger.warning(
-                                            f"Invalid shared string index {ss_idx} in {member}. Max index: {len(shared_strings)-1}"
+                                            f"Invalid shared string index {ss_idx} in {member}. Max index: {len(shared_strings) - 1}"
                                         )
                                 except ValueError:
                                     logger.warning(
@@ -234,7 +234,9 @@ def extract_office_xml_text(file_bytes: bytes, mime_type: str) -> Optional[str]:
         return None
 
 
-def handle_http_errors(tool_name: str, is_read_only: bool = False, service_type: Optional[str] = None):
+def handle_http_errors(
+    tool_name: str, is_read_only: bool = False, service_type: Optional[str] = None
+):
     """
     A decorator to handle Google API HttpErrors and transient SSL errors in a standardized way.
 
@@ -278,11 +280,16 @@ def handle_http_errors(tool_name: str, is_read_only: bool = False, service_type:
                 except HttpError as error:
                     user_google_email = kwargs.get("user_google_email", "N/A")
                     error_details = str(error)
-                    
+
                     # Check if this is an API not enabled error
-                    if error.resp.status == 403 and "accessNotConfigured" in error_details:
-                        enablement_msg = get_api_enablement_message(error_details, service_type)
-                        
+                    if (
+                        error.resp.status == 403
+                        and "accessNotConfigured" in error_details
+                    ):
+                        enablement_msg = get_api_enablement_message(
+                            error_details, service_type
+                        )
+
                         if enablement_msg:
                             message = (
                                 f"API error in {tool_name}: {enablement_msg}\n\n"
@@ -300,7 +307,7 @@ def handle_http_errors(tool_name: str, is_read_only: bool = False, service_type:
                             f"You might need to re-authenticate for user '{user_google_email}'. "
                             f"LLM: Try 'start_google_auth' with the user's email and the appropriate service_name."
                         )
-                    
+
                     logger.error(f"API error in {tool_name}: {error}", exc_info=True)
                     raise Exception(message) from error
                 except TransientNetworkError:

@@ -3,6 +3,7 @@ Google Drive MCP Tools
 
 This module provides MCP tools for interacting with Google Drive API.
 """
+
 import logging
 import asyncio
 import re
@@ -21,16 +22,18 @@ logger = logging.getLogger(__name__)
 # Precompiled regex patterns for Drive query detection
 DRIVE_QUERY_PATTERNS = [
     re.compile(r'\b\w+\s*(=|!=|>|<)\s*[\'"].*?[\'"]', re.IGNORECASE),  # field = 'value'
-    re.compile(r'\b\w+\s*(=|!=|>|<)\s*\d+', re.IGNORECASE),            # field = number
-    re.compile(r'\bcontains\b', re.IGNORECASE),                         # contains operator
-    re.compile(r'\bin\s+parents\b', re.IGNORECASE),                     # in parents
-    re.compile(r'\bhas\s*\{', re.IGNORECASE),                          # has {properties}
-    re.compile(r'\btrashed\s*=\s*(true|false)\b', re.IGNORECASE),      # trashed=true/false
-    re.compile(r'\bstarred\s*=\s*(true|false)\b', re.IGNORECASE),      # starred=true/false
-    re.compile(r'[\'"][^\'"]+[\'"]\s+in\s+parents', re.IGNORECASE),    # 'parentId' in parents
-    re.compile(r'\bfullText\s+contains\b', re.IGNORECASE),             # fullText contains
-    re.compile(r'\bname\s*(=|contains)\b', re.IGNORECASE),             # name = or name contains
-    re.compile(r'\bmimeType\s*(=|!=)\b', re.IGNORECASE),               # mimeType operators
+    re.compile(r"\b\w+\s*(=|!=|>|<)\s*\d+", re.IGNORECASE),  # field = number
+    re.compile(r"\bcontains\b", re.IGNORECASE),  # contains operator
+    re.compile(r"\bin\s+parents\b", re.IGNORECASE),  # in parents
+    re.compile(r"\bhas\s*\{", re.IGNORECASE),  # has {properties}
+    re.compile(r"\btrashed\s*=\s*(true|false)\b", re.IGNORECASE),  # trashed=true/false
+    re.compile(r"\bstarred\s*=\s*(true|false)\b", re.IGNORECASE),  # starred=true/false
+    re.compile(
+        r'[\'"][^\'"]+[\'"]\s+in\s+parents', re.IGNORECASE
+    ),  # 'parentId' in parents
+    re.compile(r"\bfullText\s+contains\b", re.IGNORECASE),  # fullText contains
+    re.compile(r"\bname\s*(=|contains)\b", re.IGNORECASE),  # name = or name contains
+    re.compile(r"\bmimeType\s*(=|!=)\b", re.IGNORECASE),  # mimeType operators
 ]
 
 
@@ -73,6 +76,7 @@ def _build_drive_list_params(
 
     return list_params
 
+
 @server.tool()
 @handle_http_errors("search_drive_files", is_read_only=True, service_type="drive")
 @require_google_service("drive", "drive_read")
@@ -101,7 +105,9 @@ async def search_drive_files(
     Returns:
         str: A formatted list of found files/folders with their details (ID, name, type, size, modified time, link).
     """
-    logger.info(f"[search_drive_files] Invoked. Email: '{user_google_email}', Query: '{query}'")
+    logger.info(
+        f"[search_drive_files] Invoked. Email: '{user_google_email}', Query: '{query}'"
+    )
 
     # Check if the query looks like a structured Drive query or free text
     # Look for Drive API operators and structured query patterns
@@ -109,12 +115,16 @@ async def search_drive_files(
 
     if is_structured_query:
         final_query = query
-        logger.info(f"[search_drive_files] Using structured query as-is: '{final_query}'")
+        logger.info(
+            f"[search_drive_files] Using structured query as-is: '{final_query}'"
+        )
     else:
         # For free text queries, wrap in fullText contains
         escaped_query = query.replace("'", "\\'")
         final_query = f"fullText contains '{escaped_query}'"
-        logger.info(f"[search_drive_files] Reformatting free text query '{query}' to '{final_query}'")
+        logger.info(
+            f"[search_drive_files] Reformatting free text query '{query}' to '{final_query}'"
+        )
 
     list_params = _build_drive_list_params(
         query=final_query,
@@ -124,21 +134,22 @@ async def search_drive_files(
         corpora=corpora,
     )
 
-    results = await asyncio.to_thread(
-        service.files().list(**list_params).execute
-    )
-    files = results.get('files', [])
+    results = await asyncio.to_thread(service.files().list(**list_params).execute)
+    files = results.get("files", [])
     if not files:
         return f"No files found for '{query}'."
 
-    formatted_files_text_parts = [f"Found {len(files)} files for {user_google_email} matching '{query}':"]
+    formatted_files_text_parts = [
+        f"Found {len(files)} files for {user_google_email} matching '{query}':"
+    ]
     for item in files:
-        size_str = f", Size: {item.get('size', 'N/A')}" if 'size' in item else ""
+        size_str = f", Size: {item.get('size', 'N/A')}" if "size" in item else ""
         formatted_files_text_parts.append(
-            f"- Name: \"{item['name']}\" (ID: {item['id']}, Type: {item['mimeType']}{size_str}, Modified: {item.get('modifiedTime', 'N/A')}) Link: {item.get('webViewLink', '#')}"
+            f'- Name: "{item["name"]}" (ID: {item["id"]}, Type: {item["mimeType"]}{size_str}, Modified: {item.get("modifiedTime", "N/A")}) Link: {item.get("webViewLink", "#")}'
         )
     text_output = "\n".join(formatted_files_text_parts)
     return text_output
+
 
 @server.tool()
 @handle_http_errors("get_drive_file_content", is_read_only=True, service_type="drive")
@@ -166,9 +177,13 @@ async def get_drive_file_content(
     logger.info(f"[get_drive_file_content] Invoked. File ID: '{file_id}'")
 
     file_metadata = await asyncio.to_thread(
-        service.files().get(
-            fileId=file_id, fields="id, name, mimeType, webViewLink", supportsAllDrives=True
-        ).execute
+        service.files()
+        .get(
+            fileId=file_id,
+            fields="id, name, mimeType, webViewLink",
+            supportsAllDrives=True,
+        )
+        .execute
     )
     mime_type = file_metadata.get("mimeType", "")
     file_name = file_metadata.get("name", "Unknown File")
@@ -196,7 +211,7 @@ async def get_drive_file_content(
     office_mime_types = {
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     }
 
     if mime_type in office_mime_types:
@@ -225,7 +240,7 @@ async def get_drive_file_content(
     # Assemble response
     header = (
         f'File: "{file_name}" (ID: {file_id}, Type: {mime_type})\n'
-        f'Link: {file_metadata.get("webViewLink", "#")}\n\n--- CONTENT ---\n'
+        f"Link: {file_metadata.get('webViewLink', '#')}\n\n--- CONTENT ---\n"
     )
     return header + body_text
 
@@ -236,7 +251,7 @@ async def get_drive_file_content(
 async def list_drive_items(
     service,
     user_google_email: str,
-    folder_id: str = 'root',
+    folder_id: str = "root",
     page_size: int = 100,
     drive_id: Optional[str] = None,
     include_items_from_all_drives: bool = True,
@@ -258,7 +273,9 @@ async def list_drive_items(
     Returns:
         str: A formatted list of files/folders in the specified folder.
     """
-    logger.info(f"[list_drive_items] Invoked. Email: '{user_google_email}', Folder ID: '{folder_id}'")
+    logger.info(
+        f"[list_drive_items] Invoked. Email: '{user_google_email}', Folder ID: '{folder_id}'"
+    )
 
     final_query = f"'{folder_id}' in parents and trashed=false"
 
@@ -270,21 +287,22 @@ async def list_drive_items(
         corpora=corpora,
     )
 
-    results = await asyncio.to_thread(
-        service.files().list(**list_params).execute
-    )
-    files = results.get('files', [])
+    results = await asyncio.to_thread(service.files().list(**list_params).execute)
+    files = results.get("files", [])
     if not files:
         return f"No items found in folder '{folder_id}'."
 
-    formatted_items_text_parts = [f"Found {len(files)} items in folder '{folder_id}' for {user_google_email}:"]
+    formatted_items_text_parts = [
+        f"Found {len(files)} items in folder '{folder_id}' for {user_google_email}:"
+    ]
     for item in files:
-        size_str = f", Size: {item.get('size', 'N/A')}" if 'size' in item else ""
+        size_str = f", Size: {item.get('size', 'N/A')}" if "size" in item else ""
         formatted_items_text_parts.append(
-            f"- Name: \"{item['name']}\" (ID: {item['id']}, Type: {item['mimeType']}{size_str}, Modified: {item.get('modifiedTime', 'N/A')}) Link: {item.get('webViewLink', '#')}"
+            f'- Name: "{item["name"]}" (ID: {item["id"]}, Type: {item["mimeType"]}{size_str}, Modified: {item.get("modifiedTime", "N/A")}) Link: {item.get("webViewLink", "#")}'
         )
     text_output = "\n".join(formatted_items_text_parts)
     return text_output
+
 
 @server.tool()
 @handle_http_errors("create_drive_file", service_type="drive")
@@ -294,8 +312,8 @@ async def create_drive_file(
     user_google_email: str,
     file_name: str,
     content: Optional[str] = None,  # Now explicitly Optional
-    folder_id: str = 'root',
-    mime_type: str = 'text/plain',
+    folder_id: str = "root",
+    mime_type: str = "text/plain",
     fileUrl: Optional[str] = None,  # Now explicitly Optional
 ) -> str:
     """
@@ -313,7 +331,9 @@ async def create_drive_file(
     Returns:
         str: Confirmation message of the successful file creation with file link.
     """
-    logger.info(f"[create_drive_file] Invoked. Email: '{user_google_email}', File Name: {file_name}, Folder ID: {folder_id}, fileUrl: {fileUrl}")
+    logger.info(
+        f"[create_drive_file] Invoked. Email: '{user_google_email}', File Name: {file_name}, Folder ID: {folder_id}, fileUrl: {fileUrl}"
+    )
 
     if not content and not fileUrl:
         raise Exception("You must provide either 'content' or 'fileUrl'.")
@@ -325,33 +345,35 @@ async def create_drive_file(
         async with httpx.AsyncClient() as client:
             resp = await client.get(fileUrl)
             if resp.status_code != 200:
-                raise Exception(f"Failed to fetch file from URL: {fileUrl} (status {resp.status_code})")
+                raise Exception(
+                    f"Failed to fetch file from URL: {fileUrl} (status {resp.status_code})"
+                )
             file_data = await resp.aread()
             # Try to get MIME type from Content-Type header
             content_type = resp.headers.get("Content-Type")
             if content_type and content_type != "application/octet-stream":
                 mime_type = content_type
-                logger.info(f"[create_drive_file] Using MIME type from Content-Type header: {mime_type}")
+                logger.info(
+                    f"[create_drive_file] Using MIME type from Content-Type header: {mime_type}"
+                )
     elif content:
-        file_data = content.encode('utf-8')
+        file_data = content.encode("utf-8")
 
-    file_metadata = {
-        'name': file_name,
-        'parents': [folder_id],
-        'mimeType': mime_type
-    }
+    file_metadata = {"name": file_name, "parents": [folder_id], "mimeType": mime_type}
     media = io.BytesIO(file_data)
 
     created_file = await asyncio.to_thread(
-        service.files().create(
+        service.files()
+        .create(
             body=file_metadata,
             media_body=MediaIoBaseUpload(media, mimetype=mime_type, resumable=True),
-            fields='id, name, webViewLink',
-            supportsAllDrives=True
-        ).execute
+            fields="id, name, webViewLink",
+            supportsAllDrives=True,
+        )
+        .execute
     )
 
-    link = created_file.get('webViewLink', 'No link available')
+    link = created_file.get("webViewLink", "No link available")
     confirmation_message = f"Successfully created file '{created_file.get('name', file_name)}' (ID: {created_file.get('id', 'N/A')}) in folder '{folder_id}' for {user_google_email}. Link: {link}"
     logger.info(f"Successfully created file. Link: {link}")
     return confirmation_message
