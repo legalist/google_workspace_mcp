@@ -61,8 +61,9 @@ class GoogleRemoteAuthProvider(RemoteAuthProvider):
 
         # Get configuration from OAuth config
         from auth.oauth_config import get_oauth_config
+
         config = get_oauth_config()
-        
+
         self.client_id = config.client_id
         self.client_secret = config.client_secret
         self.base_url = config.get_oauth_base_url()
