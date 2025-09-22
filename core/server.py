@@ -64,10 +64,10 @@ class SecureFastMCP(FastMCP):
 
 server = SecureFastMCP(
     name="google_workspace",
-    server_url=f"{WORKSPACE_MCP_BASE_URI}:{WORKSPACE_MCP_PORT}/mcp",
-    port=WORKSPACE_MCP_PORT,
+    # server_url=f"{WORKSPACE_MCP_BASE_URI}:{WORKSPACE_MCP_PORT}/mcp",
+    # port=WORKSPACE_MCP_PORT,
     auth=None,
-    host="0.0.0.0",
+    # host="0.0.0.0",
 )
 
 # Add the AuthInfo middleware to inject authentication into FastMCP context

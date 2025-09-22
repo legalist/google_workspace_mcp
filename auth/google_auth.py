@@ -297,6 +297,10 @@ async def start_auth_flow(
     )
     user_display_name = f"{service_name} for '{user_google_email}'" if initial_email_provided else service_name
 
+    logger.info(f"[start_auth_flow] Initiating auth for {user_display_name} with scopes for enabled tools.")
+
+    # Note: Caller should ensure OAuth callback is available before calling this function
+
     try:
         if "OAUTHLIB_INSECURE_TRANSPORT" not in os.environ and (
             "localhost" in redirect_uri or "127.0.0.1" in redirect_uri
