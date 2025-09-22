@@ -1,31 +1,34 @@
 import logging
-from typing import Optional, Union
 from importlib import metadata
+from typing import Optional, Union
 
 from fastapi.responses import HTMLResponse, JSONResponse
-from starlette.applications import Starlette
-from starlette.requests import Request
-from starlette.middleware import Middleware
-
 from fastmcp import FastMCP
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.requests import Request
 
-from auth.oauth21_session_store import get_oauth21_session_store, set_auth_provider
+from auth.auth_info_middleware import AuthInfoMiddleware
+from auth.fastmcp_google_auth import GoogleWorkspaceAuthProvider
 from auth.google_auth import handle_auth_callback, start_auth_flow, check_client_secrets
 from auth.mcp_session_middleware import MCPSessionMiddleware
+from auth.oauth21_session_store import get_oauth21_session_store, set_auth_provider
 from auth.oauth_responses import (
     create_error_response,
     create_success_response,
     create_server_error_response,
 )
-from auth.auth_info_middleware import AuthInfoMiddleware
-from auth.fastmcp_google_auth import GoogleWorkspaceAuthProvider
 from auth.scopes import SCOPES, get_current_scopes  # noqa
 from core.config import (
     USER_GOOGLE_EMAIL,
     get_transport_mode,
     set_transport_mode as _set_transport_mode,
     get_oauth_redirect_uri as get_oauth_redirect_uri_for_current_mode,
+    WORKSPACE_MCP_PORT,
+    WORKSPACE_MCP_BASE_URI,
 )
+
+# Import shared configuration
 
 try:
     from auth.google_remote_auth_provider import GoogleRemoteAuthProvider
@@ -61,7 +64,10 @@ class SecureFastMCP(FastMCP):
 
 server = SecureFastMCP(
     name="google_workspace",
+    # server_url=f"{WORKSPACE_MCP_BASE_URI}:{WORKSPACE_MCP_PORT}/mcp",
+    # port=WORKSPACE_MCP_PORT,
     auth=None,
+    # host="0.0.0.0",
 )
 
 # Add the AuthInfo middleware to inject authentication into FastMCP context
@@ -173,7 +179,7 @@ async def oauth2_callback(request: Request) -> HTMLResponse:
             session_id=None,
         )
 
-        logger.info(f"OAuth callback: Successfully authenticated user: {verified_user_id}.")
+        logger.info(f"OAuth callback: Successfully authenticated user: {verified_user_id} .")
 
         try:
             store = get_oauth21_session_store()

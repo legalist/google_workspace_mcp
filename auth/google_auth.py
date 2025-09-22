@@ -23,6 +23,10 @@ from core.config import (
     get_oauth_redirect_uri,
 )
 from core.context import get_fastmcp_session_id
+from auth.domain_delegation import (
+    get_delegated_credentials,
+    is_domain_delegation_available,
+)
 
 # Try to import FastMCP dependencies (may not be available in all environments)
 try:
@@ -30,9 +34,16 @@ try:
 except ImportError:
     get_fastmcp_context = None
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging level from environment variable
+log_level = getattr(logging, os.getenv("LOGLEVEL", "INFO").upper(), logging.DEBUG)
+
+logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
+
+
+def is_domain_delegation_mode() -> bool:
+    """Check if domain-wide delegation mode is enabled."""
+    return os.getenv("MCP_DOMAIN_DELEGATION", "").lower() in ("1", "true", "yes")
 
 
 # Constants
@@ -65,11 +76,12 @@ else:
         "client_secret.json",
     )
 
+
 # --- Helper Functions ---
 
 
 def _find_any_credentials(
-    base_dir: str = DEFAULT_CREDENTIALS_DIR,
+        base_dir: str = DEFAULT_CREDENTIALS_DIR,
 ) -> Optional[Credentials]:
     """
     Find and load any valid credentials from the credentials directory.
@@ -272,9 +284,9 @@ def create_oauth_flow(scopes: List[str], redirect_uri: str, state: Optional[str]
 
 
 async def start_auth_flow(
-    user_google_email: Optional[str],
-    service_name: str,  # e.g., "Google Calendar", "Gmail" for user messages
-    redirect_uri: str,  # Added redirect_uri as a required parameter
+        user_google_email: Optional[str],
+        service_name: str,  # e.g., "Google Calendar", "Gmail" for user messages
+        redirect_uri: str,  # Added redirect_uri as a required parameter
 ) -> str:
     """
     Initiates the Google OAuth flow and returns an actionable message for the user.
@@ -301,7 +313,7 @@ async def start_auth_flow(
 
     try:
         if "OAUTHLIB_INSECURE_TRANSPORT" not in os.environ and (
-            "localhost" in redirect_uri or "127.0.0.1" in redirect_uri
+                "localhost" in redirect_uri or "127.0.0.1" in redirect_uri
         ):  # Use passed redirect_uri
             logger.warning("OAUTHLIB_INSECURE_TRANSPORT not set. Setting it for localhost/local development.")
             os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
@@ -362,12 +374,12 @@ async def start_auth_flow(
 
 
 def handle_auth_callback(
-    scopes: List[str],
-    authorization_response: str,
-    redirect_uri: str,
-    credentials_base_dir: str = DEFAULT_CREDENTIALS_DIR,
-    session_id: Optional[str] = None,
-    client_secrets_path: Optional[str] = None,  # Deprecated: kept for backward compatibility
+        scopes: List[str],
+        authorization_response: str,
+        redirect_uri: str,
+        credentials_base_dir: str = DEFAULT_CREDENTIALS_DIR,
+        session_id: Optional[str] = None,
+        client_secrets_path: Optional[str] = None,  # Deprecated: kept for backward compatibility
 ) -> Tuple[str, Credentials]:
     """
     Handles the callback from Google, exchanges the code for credentials,
@@ -450,11 +462,11 @@ def handle_auth_callback(
 
 
 def get_credentials(
-    user_google_email: Optional[str],  # Can be None if relying on session_id
-    required_scopes: List[str],
-    client_secrets_path: Optional[str] = None,
-    credentials_base_dir: str = DEFAULT_CREDENTIALS_DIR,
-    session_id: Optional[str] = None,
+        user_google_email: Optional[str],  # Can be None if relying on session_id
+        required_scopes: List[str],
+        client_secrets_path: Optional[str] = None,
+        credentials_base_dir: str = DEFAULT_CREDENTIALS_DIR,
+        session_id: Optional[str] = None,
 ) -> Optional[Credentials]:
     """
     Retrieves stored credentials, prioritizing OAuth 2.1 store, then session, then file. Refreshes if necessary.
@@ -686,12 +698,12 @@ class GoogleAuthenticationError(Exception):
 
 
 async def get_authenticated_google_service(
-    service_name: str,  # "gmail", "calendar", "drive", "docs"
-    version: str,  # "v1", "v3"
-    tool_name: str,  # For logging/debugging
-    user_google_email: str,  # Required - no more Optional
-    required_scopes: List[str],
-    session_id: Optional[str] = None,  # Session context for logging
+        service_name: str,  # "gmail", "calendar", "drive", "docs"
+        version: str,  # "v1", "v3"
+        tool_name: str,  # For logging/debugging
+        user_google_email: str,  # Required - no more Optional
+        required_scopes: List[str],
+        session_id: Optional[str] = None,  # Session context for logging
 ) -> tuple[Any, str]:
     """
     Centralized Google service authentication for all MCP tools.
@@ -739,47 +751,76 @@ async def get_authenticated_google_service(
         if not session_id:
             logger.warning(f"[{tool_name}] Unable to obtain FastMCP session ID from any source")
 
-    logger.info(
-        f"[{tool_name}] Attempting to get authenticated {service_name} service. Email: '{user_google_email}', Session: '{session_id}'"
-    )
+    # Check if domain delegation mode is enabled
+    if is_domain_delegation_mode():
+        logger.info(f"[{tool_name}] Using domain-wide delegation for {user_google_email}")
 
-    # Validate email format
-    if not user_google_email or "@" not in user_google_email:
-        error_msg = f"Authentication required for {tool_name}. No valid 'user_google_email' provided. Please provide a valid Google email address."
-        logger.info(f"[{tool_name}] {error_msg}")
-        raise GoogleAuthenticationError(error_msg)
+        if not is_domain_delegation_available():
+            error_msg = f"Domain-wide delegation not available. Service account credentials not configured."
+            logger.warning(f"[{tool_name}] {error_msg}")
+            raise GoogleAuthenticationError(error_msg)
 
-    credentials = await asyncio.to_thread(
-        get_credentials,
-        user_google_email=user_google_email,
-        required_scopes=required_scopes,
-        client_secrets_path=CONFIG_CLIENT_SECRETS_PATH,
-        session_id=session_id,  # Pass through session context
-    )
+        # In domain delegation mode, we trust the email provided by MCP client. No additional token validation needed
+        try:
+            credentials = await asyncio.to_thread(
+                get_delegated_credentials,
+                user_email=user_google_email,
+                required_scopes=required_scopes,
+            )
 
-    if not credentials or not credentials.valid:
-        logger.warning(f"[{tool_name}] No valid credentials. Email: '{user_google_email}'.")
-        logger.info(f"[{tool_name}] Valid email '{user_google_email}' provided, initiating auth flow.")
+            if not credentials:
+                error_msg = f"Failed to obtain delegated credentials for {user_google_email}. Domain-wide delegation may not be configured correctly."
+                logger.warning(f"[{tool_name}] {error_msg}")
+                raise GoogleAuthenticationError(error_msg)
 
-        # Ensure OAuth callback is available
-        from auth.oauth_callback_server import ensure_oauth_callback_available
-
-        redirect_uri = get_oauth_redirect_uri()
-        config = get_oauth_config()
-        success, error_msg = ensure_oauth_callback_available(get_transport_mode(), config.port, config.base_uri)
-        if not success:
-            error_detail = f" ({error_msg})" if error_msg else ""
-            raise GoogleAuthenticationError(f"Cannot initiate OAuth flow - callback server unavailable{error_detail}")
-
-        # Generate auth URL and raise exception with it
-        auth_response = await start_auth_flow(
-            user_google_email=user_google_email,
-            service_name=f"Google {service_name.title()}",
-            redirect_uri=redirect_uri,
+            logger.info(f"[{tool_name}] Successfully obtained delegated credentials for {user_google_email}")
+        except Exception as e:
+            error_msg = f"Domain-wide delegation failed for {user_google_email}: {str(e)}"
+            logger.error(f"[{tool_name}] {error_msg}")
+            raise GoogleAuthenticationError(error_msg)
+    else:
+        logger.info(
+            f"[{tool_name}] Attempting to get authenticated {service_name} service. Email: '{user_google_email}', Session: '{session_id}'"
         )
 
-        # Extract the auth URL from the response and raise with it
-        raise GoogleAuthenticationError(auth_response)
+        # Validate email format
+        if not user_google_email or "@" not in user_google_email:
+            error_msg = f"Authentication required for {tool_name}. No valid 'user_google_email' provided. Please provide a valid Google email address."
+            logger.info(f"[{tool_name}] {error_msg}")
+            raise GoogleAuthenticationError(error_msg)
+
+        credentials = await asyncio.to_thread(
+            get_credentials,
+            user_google_email=user_google_email,
+            required_scopes=required_scopes,
+            client_secrets_path=CONFIG_CLIENT_SECRETS_PATH,
+            session_id=session_id,  # Pass through session context
+        )
+
+        if not credentials or not credentials.valid:
+            logger.warning(f"[{tool_name}] No valid credentials. Email: '{user_google_email}'.")
+            logger.info(f"[{tool_name}] Valid email '{user_google_email}' provided, initiating auth flow.")
+
+            # Ensure OAuth callback is available
+            from auth.oauth_callback_server import ensure_oauth_callback_available
+
+            redirect_uri = get_oauth_redirect_uri()
+            config = get_oauth_config()
+            success, error_msg = ensure_oauth_callback_available(get_transport_mode(), config.port, config.base_uri)
+            if not success:
+                error_detail = f" ({error_msg})" if error_msg else ""
+                raise GoogleAuthenticationError(
+                    f"Cannot initiate OAuth flow - callback server unavailable{error_detail}")
+
+            # Generate auth URL and raise exception with it
+            auth_response = await start_auth_flow(
+                user_google_email=user_google_email,
+                service_name=f"Google {service_name.title()}",
+                redirect_uri=redirect_uri,
+            )
+
+            # Extract the auth URL from the response and raise with it
+            raise GoogleAuthenticationError(auth_response)
 
     try:
         service = build(service_name, version, credentials=credentials)
