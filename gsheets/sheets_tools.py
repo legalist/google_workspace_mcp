@@ -6,7 +6,8 @@ This module provides MCP tools for interacting with Google Sheets API.
 
 import logging
 import asyncio
-from typing import List, Optional
+import json
+from typing import List, Optional, Union
 
 
 from auth.service_decorator import require_google_service
@@ -62,7 +63,9 @@ async def list_spreadsheets(
         spreadsheets_list
     )
 
-    logger.info(f"Successfully listed {len(files)} spreadsheets for {user_google_email}.")
+    logger.info(
+        f"Successfully listed {len(files)} spreadsheets for {user_google_email}."
+    )
     return text_output
 
 
@@ -84,7 +87,9 @@ async def get_spreadsheet_info(
     Returns:
         str: Formatted spreadsheet information including title and sheets list.
     """
-    logger.info(f"[get_spreadsheet_info] Invoked. Email: '{user_google_email}', Spreadsheet ID: {spreadsheet_id}")
+    logger.info(
+        f"[get_spreadsheet_info] Invoked. Email: '{user_google_email}', Spreadsheet ID: {spreadsheet_id}"
+    )
 
     spreadsheet = await asyncio.to_thread(service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute)
 
@@ -103,12 +108,15 @@ async def get_spreadsheet_info(
         sheets_info.append(f'  - "{sheet_name}" (ID: {sheet_id}) | Size: {rows}x{cols}')
 
     text_output = (
-        f'Spreadsheet: "{title}" (ID: {spreadsheet_id})\nSheets ({len(sheets)}):\n' + "\n".join(sheets_info)
+        f'Spreadsheet: "{title}" (ID: {spreadsheet_id})\n'
+        f"Sheets ({len(sheets)}):\n" + "\n".join(sheets_info)
         if sheets_info
         else "  No sheets found"
     )
 
-    logger.info(f"Successfully retrieved info for spreadsheet {spreadsheet_id} for {user_google_email}.")
+    logger.info(
+        f"Successfully retrieved info for spreadsheet {spreadsheet_id} for {user_google_email}."
+    )
     return text_output
 
 
@@ -169,7 +177,7 @@ async def modify_sheet_values(
     user_google_email: str,
     spreadsheet_id: str,
     range_name: str,
-    values: Optional[List[List[str]]] = None,
+    values: Optional[Union[str, List[List[str]]]] = None,
     value_input_option: str = "USER_ENTERED",
     clear_values: bool = False,
 ) -> str:
@@ -180,7 +188,7 @@ async def modify_sheet_values(
         user_google_email (str): The user's Google email address. Required.
         spreadsheet_id (str): The ID of the spreadsheet. Required.
         range_name (str): The range to modify (e.g., "Sheet1!A1:D10", "A1:D10"). Required.
-        values (Optional[List[List[str]]]): 2D array of values to write/update. Required unless clear_values=True.
+        values (Optional[Union[str, List[List[str]]]]): 2D array of values to write/update. Can be a JSON string or Python list. Required unless clear_values=True.
         value_input_option (str): How to interpret input values ("RAW" or "USER_ENTERED"). Defaults to "USER_ENTERED".
         clear_values (bool): If True, clears the range instead of writing values. Defaults to False.
 
@@ -192,8 +200,33 @@ async def modify_sheet_values(
         f"[modify_sheet_values] Invoked. Operation: {operation}, Email: '{user_google_email}', Spreadsheet: {spreadsheet_id}, Range: {range_name}"
     )
 
+    # Parse values if it's a JSON string (MCP passes parameters as JSON strings)
+    if values is not None and isinstance(values, str):
+        try:
+            parsed_values = json.loads(values)
+            if not isinstance(parsed_values, list):
+                raise ValueError(
+                    f"Values must be a list, got {type(parsed_values).__name__}"
+                )
+            # Validate it's a list of lists
+            for i, row in enumerate(parsed_values):
+                if not isinstance(row, list):
+                    raise ValueError(
+                        f"Row {i} must be a list, got {type(row).__name__}"
+                    )
+            values = parsed_values
+            logger.info(
+                f"[modify_sheet_values] Parsed JSON string to Python list with {len(values)} rows"
+            )
+        except json.JSONDecodeError as e:
+            raise Exception(f"Invalid JSON format for values: {e}")
+        except ValueError as e:
+            raise Exception(f"Invalid values structure: {e}")
+
     if not clear_values and not values:
-        raise Exception("Either 'values' must be provided or 'clear_values' must be True.")
+        raise Exception(
+            "Either 'values' must be provided or 'clear_values' must be True."
+        )
 
     if clear_values:
         result = await asyncio.to_thread(
@@ -201,10 +234,10 @@ async def modify_sheet_values(
         )
 
         cleared_range = result.get("clearedRange", range_name)
-        text_output = (
-            f"Successfully cleared range '{cleared_range}' in spreadsheet {spreadsheet_id} for {user_google_email}."
+        text_output = f"Successfully cleared range '{cleared_range}' in spreadsheet {spreadsheet_id} for {user_google_email}."
+        logger.info(
+            f"Successfully cleared range '{cleared_range}' for {user_google_email}."
         )
-        logger.info(f"Successfully cleared range '{cleared_range}' for {user_google_email}.")
     else:
         body = {"values": values}
 
@@ -228,7 +261,9 @@ async def modify_sheet_values(
             f"Successfully updated range '{range_name}' in spreadsheet {spreadsheet_id} for {user_google_email}. "
             f"Updated: {updated_cells} cells, {updated_rows} rows, {updated_columns} columns."
         )
-        logger.info(f"Successfully updated {updated_cells} cells for {user_google_email}.")
+        logger.info(
+            f"Successfully updated {updated_cells} cells for {user_google_email}."
+        )
 
     return text_output
 
@@ -253,7 +288,9 @@ async def create_spreadsheet(
     Returns:
         str: Information about the newly created spreadsheet including ID and URL.
     """
-    logger.info(f"[create_spreadsheet] Invoked. Email: '{user_google_email}', Title: {title}")
+    logger.info(
+        f"[create_spreadsheet] Invoked. Email: '{user_google_email}', Title: {title}"
+    )
 
     spreadsheet_body = {"properties": {"title": title}}
 
@@ -270,7 +307,9 @@ async def create_spreadsheet(
         f"ID: {spreadsheet_id} | URL: {spreadsheet_url}"
     )
 
-    logger.info(f"Successfully created spreadsheet for {user_google_email}. ID: {spreadsheet_id}")
+    logger.info(
+        f"Successfully created spreadsheet for {user_google_email}. ID: {spreadsheet_id}"
+    )
     return text_output
 
 
@@ -308,7 +347,9 @@ async def create_sheet(
 
     text_output = f"Successfully created sheet '{sheet_name}' (ID: {sheet_id}) in spreadsheet {spreadsheet_id} for {user_google_email}."
 
-    logger.info(f"Successfully created sheet for {user_google_email}. Sheet ID: {sheet_id}")
+    logger.info(
+        f"Successfully created sheet for {user_google_email}. Sheet ID: {sheet_id}"
+    )
     return text_output
 
 

@@ -6,9 +6,10 @@ This module provides MCP tools for interacting with Google Tasks API.
 
 import logging
 import asyncio
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
-from googleapiclient.errors import HttpError
+from googleapiclient.errors import HttpError  # type: ignore
+from mcp import Resource
 
 from auth.service_decorator import require_google_service
 from core.server import server
@@ -16,14 +17,37 @@ from core.utils import handle_http_errors
 
 logger = logging.getLogger(__name__)
 
+LIST_TASKS_MAX_RESULTS_DEFAULT = 20
+LIST_TASKS_MAX_RESULTS_MAX = 10_000
+LIST_TASKS_MAX_POSITION = "99999999999999999999"
 
-@server.tool()
-@require_google_service("tasks", "tasks_read")
-@handle_http_errors("list_task_lists", service_type="tasks")
+
+class StructuredTask:
+    def __init__(self, task: Dict[str, str], is_placeholder_parent: bool) -> None:
+        self.id = task["id"]
+        self.title = task.get("title", None)
+        self.status = task.get("status", None)
+        self.due = task.get("due", None)
+        self.notes = task.get("notes", None)
+        self.updated = task.get("updated", None)
+        self.completed = task.get("completed", None)
+        self.is_placeholder_parent = is_placeholder_parent
+        self.subtasks: List["StructuredTask"] = []
+
+    def add_subtask(self, subtask: "StructuredTask") -> None:
+        self.subtasks.append(subtask)
+
+    def __repr__(self) -> str:
+        return f"StructuredTask(title={self.title}, {len(self.subtasks)} subtasks)"
+
+
+@server.tool()  # type: ignore
+@require_google_service("tasks", "tasks_read")  # type: ignore
+@handle_http_errors("list_task_lists", service_type="tasks")  # type: ignore
 async def list_task_lists(
-    service,
+    service: Resource,
     user_google_email: str,
-    max_results: Optional[int] = None,
+    max_results: int = 1000,
     page_token: Optional[str] = None,
 ) -> str:
     """
@@ -31,7 +55,7 @@ async def list_task_lists(
 
     Args:
         user_google_email (str): The user's Google email address. Required.
-        max_results (Optional[int]): Maximum number of task lists to return (default: 1000, max: 1000).
+        max_results (int): Maximum number of task lists to return (default: 1000, max: 1000).
         page_token (Optional[str]): Token for pagination.
 
     Returns:
@@ -40,7 +64,7 @@ async def list_task_lists(
     logger.info(f"[list_task_lists] Invoked. Email: '{user_google_email}'")
 
     try:
-        params = {}
+        params: Dict[str, Any] = {}
         if max_results is not None:
             params["maxResults"] = max_results
         if page_token:
@@ -75,10 +99,12 @@ async def list_task_lists(
         raise Exception(message)
 
 
-@server.tool()
-@require_google_service("tasks", "tasks_read")
-@handle_http_errors("get_task_list", service_type="tasks")
-async def get_task_list(service, user_google_email: str, task_list_id: str) -> str:
+@server.tool()  # type: ignore
+@require_google_service("tasks", "tasks_read")  # type: ignore
+@handle_http_errors("get_task_list", service_type="tasks")  # type: ignore
+async def get_task_list(
+    service: Resource, user_google_email: str, task_list_id: str
+) -> str:
     """
     Get details of a specific task list.
 
@@ -89,7 +115,9 @@ async def get_task_list(service, user_google_email: str, task_list_id: str) -> s
     Returns:
         str: Task list details including title, ID, and last updated time.
     """
-    logger.info(f"[get_task_list] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}")
+    logger.info(
+        f"[get_task_list] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}"
+    )
 
     try:
         task_list = await asyncio.to_thread(service.tasklists().get(tasklist=task_list_id).execute)
@@ -100,7 +128,9 @@ async def get_task_list(service, user_google_email: str, task_list_id: str) -> s
 - Updated: {task_list.get("updated", "N/A")}
 - Self Link: {task_list.get("selfLink", "N/A")}"""
 
-        logger.info(f"Retrieved task list '{task_list['title']}' for {user_google_email}")
+        logger.info(
+            f"Retrieved task list '{task_list['title']}' for {user_google_email}"
+        )
         return response
 
     except HttpError as error:
@@ -113,10 +143,12 @@ async def get_task_list(service, user_google_email: str, task_list_id: str) -> s
         raise Exception(message)
 
 
-@server.tool()
-@require_google_service("tasks", "tasks")
-@handle_http_errors("create_task_list", service_type="tasks")
-async def create_task_list(service, user_google_email: str, title: str) -> str:
+@server.tool()  # type: ignore
+@require_google_service("tasks", "tasks")  # type: ignore
+@handle_http_errors("create_task_list", service_type="tasks")  # type: ignore
+async def create_task_list(
+    service: Resource, user_google_email: str, title: str
+) -> str:
     """
     Create a new task list.
 
@@ -127,7 +159,9 @@ async def create_task_list(service, user_google_email: str, title: str) -> str:
     Returns:
         str: Confirmation message with the new task list ID and details.
     """
-    logger.info(f"[create_task_list] Invoked. Email: '{user_google_email}', Title: '{title}'")
+    logger.info(
+        f"[create_task_list] Invoked. Email: '{user_google_email}', Title: '{title}'"
+    )
 
     try:
         body = {"title": title}
@@ -140,7 +174,9 @@ async def create_task_list(service, user_google_email: str, title: str) -> str:
 - Created: {result.get("updated", "N/A")}
 - Self Link: {result.get("selfLink", "N/A")}"""
 
-        logger.info(f"Created task list '{title}' with ID {result['id']} for {user_google_email}")
+        logger.info(
+            f"Created task list '{title}' with ID {result['id']} for {user_google_email}"
+        )
         return response
 
     except HttpError as error:
@@ -153,10 +189,12 @@ async def create_task_list(service, user_google_email: str, title: str) -> str:
         raise Exception(message)
 
 
-@server.tool()
-@require_google_service("tasks", "tasks")
-@handle_http_errors("update_task_list", service_type="tasks")
-async def update_task_list(service, user_google_email: str, task_list_id: str, title: str) -> str:
+@server.tool()  # type: ignore
+@require_google_service("tasks", "tasks")  # type: ignore
+@handle_http_errors("update_task_list", service_type="tasks")  # type: ignore
+async def update_task_list(
+    service: Resource, user_google_email: str, task_list_id: str, title: str
+) -> str:
     """
     Update an existing task list.
 
@@ -182,7 +220,9 @@ async def update_task_list(service, user_google_email: str, task_list_id: str, t
 - ID: {result["id"]}
 - Updated: {result.get("updated", "N/A")}"""
 
-        logger.info(f"Updated task list {task_list_id} with new title '{title}' for {user_google_email}")
+        logger.info(
+            f"Updated task list {task_list_id} with new title '{title}' for {user_google_email}"
+        )
         return response
 
     except HttpError as error:
@@ -195,10 +235,12 @@ async def update_task_list(service, user_google_email: str, task_list_id: str, t
         raise Exception(message)
 
 
-@server.tool()
-@require_google_service("tasks", "tasks")
-@handle_http_errors("delete_task_list", service_type="tasks")
-async def delete_task_list(service, user_google_email: str, task_list_id: str) -> str:
+@server.tool()  # type: ignore
+@require_google_service("tasks", "tasks")  # type: ignore
+@handle_http_errors("delete_task_list", service_type="tasks")  # type: ignore
+async def delete_task_list(
+    service: Resource, user_google_email: str, task_list_id: str
+) -> str:
     """
     Delete a task list. Note: This will also delete all tasks in the list.
 
@@ -209,7 +251,9 @@ async def delete_task_list(service, user_google_email: str, task_list_id: str) -
     Returns:
         str: Confirmation message.
     """
-    logger.info(f"[delete_task_list] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}")
+    logger.info(
+        f"[delete_task_list] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}"
+    )
 
     try:
         await asyncio.to_thread(service.tasklists().delete(tasklist=task_list_id).execute)
@@ -229,19 +273,19 @@ async def delete_task_list(service, user_google_email: str, task_list_id: str) -
         raise Exception(message)
 
 
-@server.tool()
-@require_google_service("tasks", "tasks_read")
-@handle_http_errors("list_tasks", service_type="tasks")
+@server.tool()  # type: ignore
+@require_google_service("tasks", "tasks_read")  # type: ignore
+@handle_http_errors("list_tasks", service_type="tasks")  # type: ignore
 async def list_tasks(
-    service,
+    service: Resource,
     user_google_email: str,
     task_list_id: str,
-    max_results: Optional[int] = None,
+    max_results: int = LIST_TASKS_MAX_RESULTS_DEFAULT,
     page_token: Optional[str] = None,
-    show_completed: Optional[bool] = None,
-    show_deleted: Optional[bool] = None,
-    show_hidden: Optional[bool] = None,
-    show_assigned: Optional[bool] = None,
+    show_completed: bool = True,
+    show_deleted: bool = False,
+    show_hidden: bool = False,
+    show_assigned: bool = False,
     completed_max: Optional[str] = None,
     completed_min: Optional[str] = None,
     due_max: Optional[str] = None,
@@ -254,12 +298,12 @@ async def list_tasks(
     Args:
         user_google_email (str): The user's Google email address. Required.
         task_list_id (str): The ID of the task list to retrieve tasks from.
-        max_results (Optional[int]): Maximum number of tasks to return (default: 20, max: 100).
+        max_results (int): Maximum number of tasks to return. (default: 20, max: 10000).
         page_token (Optional[str]): Token for pagination.
-        show_completed (Optional[bool]): Whether to include completed tasks (default: True).
-        show_deleted (Optional[bool]): Whether to include deleted tasks (default: False).
-        show_hidden (Optional[bool]): Whether to include hidden tasks (default: False).
-        show_assigned (Optional[bool]): Whether to include assigned tasks (default: False).
+        show_completed (bool): Whether to include completed tasks (default: True). Note that show_hidden must also be true to show tasks completed in first party clients, such as the web UI and Google's mobile apps.
+        show_deleted (bool): Whether to include deleted tasks (default: False).
+        show_hidden (bool): Whether to include hidden tasks (default: False).
+        show_assigned (bool): Whether to include assigned tasks (default: False).
         completed_max (Optional[str]): Upper bound for completion date (RFC 3339 timestamp).
         completed_min (Optional[str]): Lower bound for completion date (RFC 3339 timestamp).
         due_max (Optional[str]): Upper bound for due date (RFC 3339 timestamp).
@@ -269,10 +313,12 @@ async def list_tasks(
     Returns:
         str: List of tasks with their details.
     """
-    logger.info(f"[list_tasks] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}")
+    logger.info(
+        f"[list_tasks] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}"
+    )
 
     try:
-        params = {"tasklist": task_list_id}
+        params: Dict[str, Any] = {"tasklist": task_list_id}
         if max_results is not None:
             params["maxResults"] = max_results
         if page_token:
@@ -301,26 +347,42 @@ async def list_tasks(
         tasks = result.get("items", [])
         next_page_token = result.get("nextPageToken")
 
+        # In order to return a sorted and organized list of tasks all at once, we support retrieving more than a single
+        # page from the Google tasks API.
+        results_remaining = (
+            min(max_results, LIST_TASKS_MAX_RESULTS_MAX)
+            if max_results
+            else LIST_TASKS_MAX_RESULTS_DEFAULT
+        )
+        results_remaining -= len(tasks)
+        while results_remaining > 0 and next_page_token:
+            params["pageToken"] = next_page_token
+            params["maxResults"] = str(results_remaining)
+            result = await asyncio.to_thread(service.tasks().list(**params).execute)
+            more_tasks = result.get("items", [])
+            next_page_token = result.get("nextPageToken")
+            if len(more_tasks) == 0:
+                # For some unexpected reason, no more tasks were returned. Break to avoid an infinite loop.
+                break
+            tasks.extend(more_tasks)
+            results_remaining -= len(more_tasks)
+
         if not tasks:
-            return f"No tasks found in task list {task_list_id} for {user_google_email}."
+            return (
+                f"No tasks found in task list {task_list_id} for {user_google_email}."
+            )
+
+        structured_tasks = get_structured_tasks(tasks)
 
         response = f"Tasks in list {task_list_id} for {user_google_email}:\n"
-        for task in tasks:
-            response += f"- {task.get('title', 'Untitled')} (ID: {task['id']})\n"
-            response += f"  Status: {task.get('status', 'N/A')}\n"
-            if task.get("due"):
-                response += f"  Due: {task['due']}\n"
-            if task.get("notes"):
-                response += f"  Notes: {task['notes'][:100]}{'...' if len(task['notes']) > 100 else ''}\n"
-            if task.get("completed"):
-                response += f"  Completed: {task['completed']}\n"
-            response += f"  Updated: {task.get('updated', 'N/A')}\n"
-            response += "\n"
+        response += serialize_tasks(structured_tasks, 0)
 
         if next_page_token:
-            response += f"Next page token: {next_page_token}"
+            response += f"Next page token: {next_page_token}\n"
 
-        logger.info(f"Found {len(tasks)} tasks in list {task_list_id} for {user_google_email}")
+        logger.info(
+            f"Found {len(tasks)} tasks in list {task_list_id} for {user_google_email}"
+        )
         return response
 
     except HttpError as error:
@@ -333,10 +395,127 @@ async def list_tasks(
         raise Exception(message)
 
 
-@server.tool()
-@require_google_service("tasks", "tasks_read")
-@handle_http_errors("get_task", service_type="tasks")
-async def get_task(service, user_google_email: str, task_list_id: str, task_id: str) -> str:
+def get_structured_tasks(tasks: List[Dict[str, str]]) -> List[StructuredTask]:
+    """
+    Convert a flat list of task dictionaries into StructuredTask objects based on parent-child relationships sorted by position.
+
+    Args:
+        tasks: List of task dictionaries.
+
+    Returns:
+        list: Sorted list of top-level StructuredTask objects with nested subtasks.
+    """
+    tasks_by_id = {
+        task["id"]: StructuredTask(task, is_placeholder_parent=False) for task in tasks
+    }
+    positions_by_id = {
+        task["id"]: int(task["position"]) for task in tasks if "position" in task
+    }
+
+    # Placeholder virtual root as parent for top-level tasks
+    root_task = StructuredTask(
+        {"id": "root", "title": "Root"}, is_placeholder_parent=False
+    )
+
+    for task in tasks:
+        structured_task = tasks_by_id[task["id"]]
+        parent_id = task.get("parent")
+        parent = None
+
+        if not parent_id:
+            # Task without parent: parent to the virtual root
+            parent = root_task
+        elif parent_id in tasks_by_id:
+            # Subtask: parent to its actual parent
+            parent = tasks_by_id[parent_id]
+        else:
+            # Orphaned subtask: create placeholder parent
+            # Due to paging or filtering, a subtask may have a parent that is not present in the list of tasks.
+            # We will create placeholder StructuredTask objects for these missing parents to maintain the hierarchy.
+            parent = StructuredTask({"id": parent_id}, is_placeholder_parent=True)
+            tasks_by_id[parent_id] = parent
+            root_task.add_subtask(parent)
+
+        parent.add_subtask(structured_task)
+
+    sort_structured_tasks(root_task, positions_by_id)
+    return root_task.subtasks
+
+
+def sort_structured_tasks(
+    root_task: StructuredTask, positions_by_id: Dict[str, int]
+) -> None:
+    """
+    Recursively sort--in place--StructuredTask objects and their subtasks based on position.
+
+    Args:
+        root_task: The root StructuredTask object.
+        positions_by_id: Dictionary mapping task IDs to their positions.
+    """
+
+    def get_position(task: StructuredTask) -> int | float:
+        # Tasks without position go to the end (infinity)
+        result = positions_by_id.get(task.id, float("inf"))
+        return result
+
+    root_task.subtasks.sort(key=get_position)
+    for subtask in root_task.subtasks:
+        sort_structured_tasks(subtask, positions_by_id)
+
+
+def serialize_tasks(structured_tasks: List[StructuredTask], subtask_level: int) -> str:
+    """
+    Serialize a list of StructuredTask objects into a formatted string with indentation for subtasks.
+    Args:
+        structured_tasks (list): List of StructuredTask objects.
+        subtask_level (int): Current level of indentation for subtasks.
+
+    Returns:
+        str: Formatted string representation of the tasks.
+    """
+    response = ""
+    placeholder_parent_count = 0
+    placeholder_parent_title = "Unknown parent"
+    for task in structured_tasks:
+        indent = "  " * subtask_level
+        bullet = "-" if subtask_level == 0 else "*"
+        if task.title is not None:
+            title = task.title
+        elif task.is_placeholder_parent:
+            title = placeholder_parent_title
+            placeholder_parent_count += 1
+        else:
+            title = "Untitled"
+        response += f"{indent}{bullet} {title} (ID: {task.id})\n"
+        response += f"{indent}  Status: {task.status or 'N/A'}\n"
+        response += f"{indent}  Due: {task.due}\n" if task.due else ""
+        if task.notes:
+            response += f"{indent}  Notes: {task.notes[:100]}{'...' if len(task.notes) > 100 else ''}\n"
+        response += f"{indent}  Completed: {task.completed}\n" if task.completed else ""
+        response += f"{indent}  Updated: {task.updated or 'N/A'}\n"
+        response += "\n"
+
+        response += serialize_tasks(task.subtasks, subtask_level + 1)
+
+    if placeholder_parent_count > 0:
+        # Placeholder parents should only appear at the top level
+        assert subtask_level == 0
+        response += f"""
+{placeholder_parent_count} tasks with title {placeholder_parent_title} are included as placeholders.
+These placeholders contain subtasks whose parents were not present in the task list.
+This can occur due to pagination. Callers can often avoid this problem if max_results is large enough to contain all tasks (subtasks and their parents) without paging.
+This can also occur due to filtering that excludes parent tasks while including their subtasks or due to deleted or hidden parent tasks.
+"""
+
+    return response
+
+
+@server.tool()  # type: ignore
+@require_google_service("tasks", "tasks_read")  # type: ignore
+@handle_http_errors("get_task", service_type="tasks")  # type: ignore
+async def get_task(
+    service: Resource, user_google_email: str, task_list_id: str, task_id: str
+) -> str:
     """
     Get details of a specific task.
 
@@ -348,7 +527,9 @@ async def get_task(service, user_google_email: str, task_list_id: str, task_id: 
     Returns:
         str: Task details including title, notes, status, due date, etc.
     """
-    logger.info(f"[get_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}")
+    logger.info(
+        f"[get_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}"
+    )
 
     try:
         task = await asyncio.to_thread(service.tasks().get(tasklist=task_list_id, task=task_id).execute)
@@ -374,7 +555,9 @@ async def get_task(service, user_google_email: str, task_list_id: str, task_id: 
         if task.get("webViewLink"):
             response += f"\n- Web View Link: {task['webViewLink']}"
 
-        logger.info(f"Retrieved task '{task.get('title', 'Untitled')}' for {user_google_email}")
+        logger.info(
+            f"Retrieved task '{task.get('title', 'Untitled')}' for {user_google_email}"
+        )
         return response
 
     except HttpError as error:
@@ -387,11 +570,11 @@ async def get_task(service, user_google_email: str, task_list_id: str, task_id: 
         raise Exception(message)
 
 
-@server.tool()
-@require_google_service("tasks", "tasks")
-@handle_http_errors("create_task", service_type="tasks")
+@server.tool()  # type: ignore
+@require_google_service("tasks", "tasks")  # type: ignore
+@handle_http_errors("create_task", service_type="tasks")  # type: ignore
 async def create_task(
-    service,
+    service: Resource,
     user_google_email: str,
     task_list_id: str,
     title: str,
@@ -415,7 +598,9 @@ async def create_task(
     Returns:
         str: Confirmation message with the new task ID and details.
     """
-    logger.info(f"[create_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Title: '{title}'")
+    logger.info(
+        f"[create_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Title: '{title}'"
+    )
 
     try:
         body = {"title": title}
@@ -445,7 +630,9 @@ async def create_task(
         if result.get("webViewLink"):
             response += f"\n- Web View Link: {result['webViewLink']}"
 
-        logger.info(f"Created task '{title}' with ID {result['id']} for {user_google_email}")
+        logger.info(
+            f"Created task '{title}' with ID {result['id']} for {user_google_email}"
+        )
         return response
 
     except HttpError as error:
@@ -458,11 +645,11 @@ async def create_task(
         raise Exception(message)
 
 
-@server.tool()
-@require_google_service("tasks", "tasks")
-@handle_http_errors("update_task", service_type="tasks")
+@server.tool()  # type: ignore
+@require_google_service("tasks", "tasks")  # type: ignore
+@handle_http_errors("update_task", service_type="tasks")  # type: ignore
 async def update_task(
-    service,
+    service: Resource,
     user_google_email: str,
     task_list_id: str,
     task_id: str,
@@ -497,7 +684,9 @@ async def update_task(
         body = {
             "id": task_id,
             "title": title if title is not None else current_task.get("title", ""),
-            "status": status if status is not None else current_task.get("status", "needsAction"),
+            "status": status
+            if status is not None
+            else current_task.get("status", "needsAction"),
         }
 
         if notes is not None:
@@ -510,7 +699,11 @@ async def update_task(
         elif current_task.get("due"):
             body["due"] = current_task["due"]
 
-        result = await asyncio.to_thread(service.tasks().update(tasklist=task_list_id, task=task_id, body=body).execute)
+        result = await asyncio.to_thread(
+            service.tasks()
+            .update(tasklist=task_list_id, task=task_id, body=body)
+            .execute
+        )
 
         response = f"""Task Updated for {user_google_email}:
 - Title: {result["title"]}
@@ -538,10 +731,12 @@ async def update_task(
         raise Exception(message)
 
 
-@server.tool()
-@require_google_service("tasks", "tasks")
-@handle_http_errors("delete_task", service_type="tasks")
-async def delete_task(service, user_google_email: str, task_list_id: str, task_id: str) -> str:
+@server.tool()  # type: ignore
+@require_google_service("tasks", "tasks")  # type: ignore
+@handle_http_errors("delete_task", service_type="tasks")  # type: ignore
+async def delete_task(
+    service: Resource, user_google_email: str, task_list_id: str, task_id: str
+) -> str:
     """
     Delete a task from a task list.
 
@@ -575,11 +770,11 @@ async def delete_task(service, user_google_email: str, task_list_id: str, task_i
         raise Exception(message)
 
 
-@server.tool()
-@require_google_service("tasks", "tasks")
-@handle_http_errors("move_task", service_type="tasks")
+@server.tool()  # type: ignore
+@require_google_service("tasks", "tasks")  # type: ignore
+@handle_http_errors("move_task", service_type="tasks")  # type: ignore
 async def move_task(
-    service,
+    service: Resource,
     user_google_email: str,
     task_list_id: str,
     task_id: str,
@@ -601,7 +796,9 @@ async def move_task(
     Returns:
         str: Confirmation message with updated task details.
     """
-    logger.info(f"[move_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}")
+    logger.info(
+        f"[move_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}"
+    )
 
     try:
         params = {"tasklist": task_list_id, "task": task_id}
@@ -649,10 +846,12 @@ async def move_task(
         raise Exception(message)
 
 
-@server.tool()
-@require_google_service("tasks", "tasks")
-@handle_http_errors("clear_completed_tasks", service_type="tasks")
-async def clear_completed_tasks(service, user_google_email: str, task_list_id: str) -> str:
+@server.tool()  # type: ignore
+@require_google_service("tasks", "tasks")  # type: ignore
+@handle_http_errors("clear_completed_tasks", service_type="tasks")  # type: ignore
+async def clear_completed_tasks(
+    service: Resource, user_google_email: str, task_list_id: str
+) -> str:
     """
     Clear all completed tasks from a task list. The tasks will be marked as hidden.
 
@@ -663,14 +862,18 @@ async def clear_completed_tasks(service, user_google_email: str, task_list_id: s
     Returns:
         str: Confirmation message.
     """
-    logger.info(f"[clear_completed_tasks] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}")
+    logger.info(
+        f"[clear_completed_tasks] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}"
+    )
 
     try:
         await asyncio.to_thread(service.tasks().clear(tasklist=task_list_id).execute)
 
         response = f"All completed tasks have been cleared from task list {task_list_id} for {user_google_email}. The tasks are now hidden and won't appear in default task list views."
 
-        logger.info(f"Cleared completed tasks from list {task_list_id} for {user_google_email}")
+        logger.info(
+            f"Cleared completed tasks from list {task_list_id} for {user_google_email}"
+        )
         return response
 
     except HttpError as error:

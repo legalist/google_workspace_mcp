@@ -13,26 +13,29 @@ from typing import Optional, List, Dict, Literal
 from email.mime.text import MIMEText
 
 from fastapi import Body
+from pydantic import Field
 
 from auth.service_decorator import require_google_service
 from core.utils import handle_http_errors
-from core.server import (
+from core.server import server
+from auth.scopes import (
     GMAIL_SEND_SCOPE,
     GMAIL_COMPOSE_SCOPE,
     GMAIL_MODIFY_SCOPE,
     GMAIL_LABELS_SCOPE,
-    server,
 )
 
 logger = logging.getLogger(__name__)
 
 GMAIL_BATCH_SIZE = 25
 GMAIL_REQUEST_DELAY = 0.1
+HTML_BODY_TRUNCATE_LIMIT = 20000
 
 
 def _extract_message_body(payload):
     """
     Helper function to extract plain text body from a Gmail message payload.
+    (Maintained for backward compatibility)
 
     Args:
         payload (dict): The message payload from Gmail API
@@ -40,25 +43,85 @@ def _extract_message_body(payload):
     Returns:
         str: The plain text body content, or empty string if not found
     """
-    body_data = ""
+    bodies = _extract_message_bodies(payload)
+    return bodies.get("text", "")
+
+
+def _extract_message_bodies(payload):
+    """
+    Helper function to extract both plain text and HTML bodies from a Gmail message payload.
+
+    Args:
+        payload (dict): The message payload from Gmail API
+
+    Returns:
+        dict: Dictionary with 'text' and 'html' keys containing body content
+    """
+    text_body = ""
+    html_body = ""
     parts = [payload] if "parts" not in payload else payload.get("parts", [])
 
     part_queue = list(parts)  # Use a queue for BFS traversal of parts
     while part_queue:
         part = part_queue.pop(0)
-        if part.get("mimeType") == "text/plain" and part.get("body", {}).get("data"):
-            data = base64.urlsafe_b64decode(part["body"]["data"])
-            body_data = data.decode("utf-8", errors="ignore")
-            break  # Found plain text body
-        elif part.get("mimeType", "").startswith("multipart/") and "parts" in part:
-            part_queue.extend(part.get("parts", []))  # Add sub-parts to the queue
+        mime_type = part.get("mimeType", "")
+        body_data = part.get("body", {}).get("data")
 
-    # If no plain text found, check the main payload body if it exists
-    if not body_data and payload.get("mimeType") == "text/plain" and payload.get("body", {}).get("data"):
-        data = base64.urlsafe_b64decode(payload["body"]["data"])
-        body_data = data.decode("utf-8", errors="ignore")
+        if body_data:
+            try:
+                decoded_data = base64.urlsafe_b64decode(body_data).decode(
+                    "utf-8", errors="ignore"
+                )
+                if mime_type == "text/plain" and not text_body:
+                    text_body = decoded_data
+                elif mime_type == "text/html" and not html_body:
+                    html_body = decoded_data
+            except Exception as e:
+                logger.warning(f"Failed to decode body part: {e}")
 
-    return body_data
+        # Add sub-parts to queue for multipart messages
+        if mime_type.startswith("multipart/") and "parts" in part:
+            part_queue.extend(part.get("parts", []))
+
+    # Check the main payload if it has body data directly
+    if payload.get("body", {}).get("data"):
+        try:
+            decoded_data = base64.urlsafe_b64decode(payload["body"]["data"]).decode(
+                "utf-8", errors="ignore"
+            )
+            mime_type = payload.get("mimeType", "")
+            if mime_type == "text/plain" and not text_body:
+                text_body = decoded_data
+            elif mime_type == "text/html" and not html_body:
+                html_body = decoded_data
+        except Exception as e:
+            logger.warning(f"Failed to decode main payload body: {e}")
+
+    return {"text": text_body, "html": html_body}
+
+
+def _format_body_content(text_body: str, html_body: str) -> str:
+    """
+    Helper function to format message body content with HTML fallback and truncation.
+
+    Args:
+        text_body: Plain text body content
+        html_body: HTML body content
+
+    Returns:
+        Formatted body content string
+    """
+    if text_body.strip():
+        return text_body
+    elif html_body.strip():
+        # Truncate very large HTML to keep responses manageable
+        if len(html_body) > HTML_BODY_TRUNCATE_LIMIT:
+            html_body = (
+                html_body[:HTML_BODY_TRUNCATE_LIMIT] + "\n\n[HTML content truncated...]"
+            )
+        return f"[HTML Content Converted]\n{html_body}"
+    else:
+        return "[No readable content found]"
 
 
 def _extract_headers(payload: dict, header_names: List[str]) -> Dict[str, str]:
@@ -77,6 +140,62 @@ def _extract_headers(payload: dict, header_names: List[str]) -> Dict[str, str]:
         if header["name"] in header_names:
             headers[header["name"]] = header["value"]
     return headers
+
+
+def _prepare_gmail_message(
+    subject: str,
+    body: str,
+    to: Optional[str] = None,
+    cc: Optional[str] = None,
+    bcc: Optional[str] = None,
+    thread_id: Optional[str] = None,
+    in_reply_to: Optional[str] = None,
+    references: Optional[str] = None,
+) -> tuple[str, Optional[str]]:
+    """
+    Prepare a Gmail message with threading support.
+
+    Args:
+        subject: Email subject
+        body: Email body (plain text)
+        to: Optional recipient email address
+        cc: Optional CC email address
+        bcc: Optional BCC email address
+        thread_id: Optional Gmail thread ID to reply within
+        in_reply_to: Optional Message-ID of the message being replied to
+        references: Optional chain of Message-IDs for proper threading
+
+    Returns:
+        Tuple of (raw_message, thread_id) where raw_message is base64 encoded
+    """
+    # Handle reply subject formatting
+    reply_subject = subject
+    if in_reply_to and not subject.lower().startswith("re:"):
+        reply_subject = f"Re: {subject}"
+
+    # Prepare the email
+    message = MIMEText(body)
+    message["subject"] = reply_subject
+
+    # Add recipients if provided
+    if to:
+        message["to"] = to
+    if cc:
+        message["cc"] = cc
+    if bcc:
+        message["bcc"] = bcc
+
+    # Add reply headers for threading
+    if in_reply_to:
+        message["In-Reply-To"] = in_reply_to
+
+    if references:
+        message["References"] = references
+
+    # Encode message
+    raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+
+    return raw_message, thread_id
 
 
 def _generate_gmail_web_url(item_id: str, account_index: int = 0) -> str:
@@ -198,7 +317,9 @@ async def search_gmail_messages(service, query: str, user_google_email: str, pag
 
 
 @server.tool()
-@handle_http_errors("get_gmail_message_content", is_read_only=True, service_type="gmail")
+@handle_http_errors(
+    "get_gmail_message_content", is_read_only=True, service_type="gmail"
+)
 @require_google_service("gmail", "gmail_read")
 async def get_gmail_message_content(service, message_id: str, user_google_email: str) -> str:
     """
@@ -244,9 +365,14 @@ async def get_gmail_message_content(service, message_id: str, user_google_email:
         .execute
     )
 
-    # Extract the plain text body using helper function
+    # Extract both text and HTML bodies using enhanced helper function
     payload = message_full.get("payload", {})
-    body_data = _extract_message_body(payload)
+    bodies = _extract_message_bodies(payload)
+    text_body = bodies.get("text", "")
+    html_body = bodies.get("html", "")
+
+    # Format body content with HTML fallback
+    body_data = _format_body_content(text_body, html_body)
 
     content_text = "\n".join(
         [
@@ -259,7 +385,9 @@ async def get_gmail_message_content(service, message_id: str, user_google_email:
 
 
 @server.tool()
-@handle_http_errors("get_gmail_messages_content_batch", is_read_only=True, service_type="gmail")
+@handle_http_errors(
+    "get_gmail_messages_content_batch", is_read_only=True, service_type="gmail"
+)
 @require_google_service("gmail", "gmail_read")
 async def get_gmail_messages_content_batch(
     service,
@@ -401,14 +529,21 @@ async def get_gmail_messages_content_batch(
                     headers = _extract_headers(payload, ["Subject", "From"])
                     subject = headers.get("Subject", "(no subject)")
                     sender = headers.get("From", "(unknown sender)")
-                    body = _extract_message_body(payload)
+
+                    # Extract both text and HTML bodies using enhanced helper function
+                    bodies = _extract_message_bodies(payload)
+                    text_body = bodies.get("text", "")
+                    html_body = bodies.get("html", "")
+
+                    # Format body content with HTML fallback
+                    body_data = _format_body_content(text_body, html_body)
 
                     output_messages.append(
                         f"Message ID: {mid}\n"
                         f"Subject: {subject}\n"
                         f"From: {sender}\n"
                         f"Web Link: {_generate_gmail_web_url(mid)}\n"
-                        f"\n{body or '[No text/plain body found]'}\n"
+                        f"\n{body_data}\n"
                     )
 
     # Combine all messages with separators
@@ -427,25 +562,79 @@ async def send_gmail_message(
     to: str = Body(..., description="Recipient email address."),
     subject: str = Body(..., description="Email subject."),
     body: str = Body(..., description="Email body (plain text)."),
+    cc: Optional[str] = Body(None, description="Optional CC email address."),
+    bcc: Optional[str] = Body(None, description="Optional BCC email address."),
+    thread_id: Optional[str] = Body(
+        None, description="Optional Gmail thread ID to reply within."
+    ),
+    in_reply_to: Optional[str] = Body(
+        None, description="Optional Message-ID of the message being replied to."
+    ),
+    references: Optional[str] = Body(
+        None, description="Optional chain of Message-IDs for proper threading."
+    ),
 ) -> str:
     """
-    Sends an email using the user's Gmail account.
+    Sends an email using the user's Gmail account. Supports both new emails and replies.
 
     Args:
         to (str): Recipient email address.
         subject (str): Email subject.
         body (str): Email body (plain text).
+        cc (Optional[str]): Optional CC email address.
+        bcc (Optional[str]): Optional BCC email address.
         user_google_email (str): The user's Google email address. Required.
+        thread_id (Optional[str]): Optional Gmail thread ID to reply within. When provided, sends a reply.
+        in_reply_to (Optional[str]): Optional Message-ID of the message being replied to. Used for proper threading.
+        references (Optional[str]): Optional chain of Message-IDs for proper threading. Should include all previous Message-IDs.
 
     Returns:
         str: Confirmation message with the sent email's message ID.
+
+    Examples:
+        # Send a new email
+        send_gmail_message(to="user@example.com", subject="Hello", body="Hi there!")
+
+        # Send an email with CC and BCC
+        send_gmail_message(
+            to="user@example.com",
+            cc="manager@example.com",
+            bcc="archive@example.com",
+            subject="Project Update",
+            body="Here's the latest update..."
+        )
+
+        # Send a reply
+        send_gmail_message(
+            to="user@example.com",
+            subject="Re: Meeting tomorrow",
+            body="Thanks for the update!",
+            thread_id="thread_123",
+            in_reply_to="<message123@gmail.com>",
+            references="<original@gmail.com> <message123@gmail.com>"
+        )
     """
-    # Prepare the email
-    message = MIMEText(body)
-    message["to"] = to
-    message["subject"] = subject
-    raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    logger.info(
+        f"[send_gmail_message] Invoked. Email: '{user_google_email}', Subject: '{subject}'"
+    )
+
+    # Prepare the email message
+    raw_message, thread_id_final = _prepare_gmail_message(
+        subject=subject,
+        body=body,
+        to=to,
+        cc=cc,
+        bcc=bcc,
+        thread_id=thread_id,
+        in_reply_to=in_reply_to,
+        references=references,
+    )
+
     send_body = {"raw": raw_message}
+
+    # Associate with thread if provided
+    if thread_id_final:
+        send_body["threadId"] = thread_id_final
 
     # Send the message
     sent_message = await asyncio.to_thread(service.users().messages().send(userId="me", body=send_body).execute)
@@ -462,33 +651,78 @@ async def draft_gmail_message(
     subject: str = Body(..., description="Email subject."),
     body: str = Body(..., description="Email body (plain text)."),
     to: Optional[str] = Body(None, description="Optional recipient email address."),
+    cc: Optional[str] = Body(None, description="Optional CC email address."),
+    bcc: Optional[str] = Body(None, description="Optional BCC email address."),
+    thread_id: Optional[str] = Body(
+        None, description="Optional Gmail thread ID to reply within."
+    ),
+    in_reply_to: Optional[str] = Body(
+        None, description="Optional Message-ID of the message being replied to."
+    ),
+    references: Optional[str] = Body(
+        None, description="Optional chain of Message-IDs for proper threading."
+    ),
 ) -> str:
     """
-    Creates a draft email in the user's Gmail account.
+    Creates a draft email in the user's Gmail account. Supports both new drafts and reply drafts.
 
     Args:
         user_google_email (str): The user's Google email address. Required.
         subject (str): Email subject.
         body (str): Email body (plain text).
         to (Optional[str]): Optional recipient email address. Can be left empty for drafts.
+        cc (Optional[str]): Optional CC email address.
+        bcc (Optional[str]): Optional BCC email address.
+        thread_id (Optional[str]): Optional Gmail thread ID to reply within. When provided, creates a reply draft.
+        in_reply_to (Optional[str]): Optional Message-ID of the message being replied to. Used for proper threading.
+        references (Optional[str]): Optional chain of Message-IDs for proper threading. Should include all previous Message-IDs.
 
     Returns:
         str: Confirmation message with the created draft's ID.
+
+    Examples:
+        # Create a new draft
+        draft_gmail_message(subject="Hello", body="Hi there!", to="user@example.com")
+
+        # Create a draft with CC and BCC
+        draft_gmail_message(
+            subject="Project Update",
+            body="Here's the latest update...",
+            to="user@example.com",
+            cc="manager@example.com",
+            bcc="archive@example.com"
+        )
+
+        # Create a reply draft
+        draft_gmail_message(
+            subject="Re: Meeting tomorrow",
+            body="Thanks for the update!",
+            to="user@example.com",
+            thread_id="thread_123",
+            in_reply_to="<message123@gmail.com>",
+            references="<original@gmail.com> <message123@gmail.com>"
+        )
     """
     logger.info(f"[draft_gmail_message] Invoked. Email: '{user_google_email}', Subject: '{subject}'")
 
-    # Prepare the email
-    message = MIMEText(body)
-    message["subject"] = subject
-
-    # Add recipient if provided
-    if to:
-        message["to"] = to
-
-    raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    # Prepare the email message
+    raw_message, thread_id_final = _prepare_gmail_message(
+        subject=subject,
+        body=body,
+        to=to,
+        cc=cc,
+        bcc=bcc,
+        thread_id=thread_id,
+        in_reply_to=in_reply_to,
+        references=references,
+    )
 
     # Create a draft instead of sending
     draft_body = {"message": {"raw": raw_message}}
+
+    # Associate with thread if provided
+    if thread_id_final:
+        draft_body["message"]["threadId"] = thread_id_final
 
     # Create the draft
     created_draft = await asyncio.to_thread(service.users().drafts().create(userId="me", body=draft_body).execute)
@@ -533,9 +767,14 @@ def _format_thread_content(thread_data: dict, thread_id: str) -> str:
         date = headers.get("Date", "(unknown date)")
         subject = headers.get("Subject", "(no subject)")
 
-        # Extract message body
+        # Extract both text and HTML bodies
         payload = message.get("payload", {})
-        body_data = _extract_message_body(payload)
+        bodies = _extract_message_bodies(payload)
+        text_body = bodies.get("text", "")
+        html_body = bodies.get("html", "")
+
+        # Format body content with HTML fallback
+        body_data = _format_body_content(text_body, html_body)
 
         # Add message to content
         content_lines.extend(
@@ -553,7 +792,7 @@ def _format_thread_content(thread_data: dict, thread_id: str) -> str:
         content_lines.extend(
             [
                 "",
-                body_data or "[No text/plain body found]",
+                body_data,
                 "",
             ]
         )
@@ -587,7 +826,9 @@ async def get_gmail_thread_content(service, thread_id: str, user_google_email: s
 
 @server.tool()
 @require_google_service("gmail", "gmail_read")
-@handle_http_errors("get_gmail_threads_content_batch", is_read_only=True, service_type="gmail")
+@handle_http_errors(
+    "get_gmail_threads_content_batch", is_read_only=True, service_type="gmail"
+)
 async def get_gmail_threads_content_batch(
     service,
     thread_ids: List[str],
@@ -808,11 +1049,17 @@ async def modify_gmail_message_labels(
     service,
     user_google_email: str,
     message_id: str,
-    add_label_ids: Optional[List[str]] = None,
-    remove_label_ids: Optional[List[str]] = None,
+    add_label_ids: List[str] = Field(
+        default=[], description="Label IDs to add to the message."
+    ),
+    remove_label_ids: List[str] = Field(
+        default=[], description="Label IDs to remove from the message."
+    ),
 ) -> str:
     """
     Adds or removes labels from a Gmail message.
+    To archive an email, remove the INBOX label.
+    To delete an email, add the TRASH label.
 
     Args:
         user_google_email (str): The user's Google email address. Required.
@@ -852,8 +1099,12 @@ async def batch_modify_gmail_message_labels(
     service,
     user_google_email: str,
     message_ids: List[str],
-    add_label_ids: Optional[List[str]] = None,
-    remove_label_ids: Optional[List[str]] = None,
+    add_label_ids: List[str] = Field(
+        default=[], description="Label IDs to add to messages."
+    ),
+    remove_label_ids: List[str] = Field(
+        default=[], description="Label IDs to remove from messages."
+    ),
 ) -> str:
     """
     Adds or removes labels from multiple Gmail messages in a single batch request.

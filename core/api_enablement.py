@@ -12,6 +12,7 @@ API_ENABLEMENT_LINKS: Dict[str, str] = {
     "forms.googleapis.com": "https://console.cloud.google.com/flows/enableapi?apiid=forms.googleapis.com",
     "tasks.googleapis.com": "https://console.cloud.google.com/flows/enableapi?apiid=tasks.googleapis.com",
     "chat.googleapis.com": "https://console.cloud.google.com/flows/enableapi?apiid=chat.googleapis.com",
+    "customsearch.googleapis.com": "https://console.cloud.google.com/flows/enableapi?apiid=customsearch.googleapis.com",
 }
 
 
@@ -25,6 +26,7 @@ SERVICE_NAME_TO_API: Dict[str, str] = {
     "Google Forms": "forms.googleapis.com",
     "Google Tasks": "tasks.googleapis.com",
     "Google Chat": "chat.googleapis.com",
+    "Google Custom Search": "customsearch.googleapis.com",
 }
 
 
@@ -38,6 +40,8 @@ INTERNAL_SERVICE_TO_API: Dict[str, str] = {
     "forms": "forms.googleapis.com",
     "tasks": "tasks.googleapis.com",
     "chat": "chat.googleapis.com",
+    "customsearch": "customsearch.googleapis.com",
+    "search": "customsearch.googleapis.com",
 }
 
 
@@ -62,7 +66,9 @@ def extract_api_info_from_error(
     return api_service, project_id
 
 
-def get_api_enablement_message(error_details: str, service_type: Optional[str] = None) -> str:
+def get_api_enablement_message(
+    error_details: str, service_type: Optional[str] = None
+) -> str:
     """
     Generate a helpful error message with direct API enablement link.
 

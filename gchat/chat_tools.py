@@ -86,7 +86,10 @@ async def get_messages(
 
     # Get messages
     response = await asyncio.to_thread(
-        service.spaces().messages().list(parent=space_id, pageSize=page_size, orderBy=order_by).execute
+        service.spaces()
+        .messages()
+        .list(parent=space_id, pageSize=page_size, orderBy=order_by)
+        .execute
     )
 
     messages = response.get("messages", [])
@@ -138,7 +141,9 @@ async def send_message(
     create_time = message.get("createTime", "")
 
     msg = f"Message sent to space '{space_id}' by {user_google_email}. Message ID: {message_name}, Time: {create_time}"
-    logger.info(f"Successfully sent message to space '{space_id}' by {user_google_email}")
+    logger.info(
+        f"Successfully sent message to space '{space_id}' by {user_google_email}"
+    )
     return msg
 
 
@@ -163,14 +168,19 @@ async def search_messages(
     # If specific space provided, search within that space
     if space_id:
         response = await asyncio.to_thread(
-            service.spaces().messages().list(parent=space_id, pageSize=page_size, filter=f'text:"{query}"').execute
+            service.spaces()
+            .messages()
+            .list(parent=space_id, pageSize=page_size, filter=f'text:"{query}"')
+            .execute
         )
         messages = response.get("messages", [])
         context = f"space '{space_id}'"
     else:
         # Search across all accessible spaces (this may require iterating through spaces)
         # For simplicity, we'll search the user's spaces first
-        spaces_response = await asyncio.to_thread(service.spaces().list(pageSize=100).execute)
+        spaces_response = await asyncio.to_thread(
+            service.spaces().list(pageSize=100).execute
+        )
         spaces = spaces_response.get("spaces", [])
 
         messages = []
@@ -179,7 +189,9 @@ async def search_messages(
                 space_messages = await asyncio.to_thread(
                     service.spaces()
                     .messages()
-                    .list(parent=space.get("name"), pageSize=5, filter=f'text:"{query}"')
+                    .list(
+                        parent=space.get("name"), pageSize=5, filter=f'text:"{query}"'
+                    )
                     .execute
                 )
                 space_msgs = space_messages.get("messages", [])

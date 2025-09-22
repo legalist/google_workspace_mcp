@@ -20,7 +20,9 @@ logger = logging.getLogger(__name__)
 @server.tool()
 @handle_http_errors("create_presentation", service_type="slides")
 @require_google_service("slides", "slides")
-async def create_presentation(service, user_google_email: str, title: str = "Untitled Presentation") -> str:
+async def create_presentation(
+    service, user_google_email: str, title: str = "Untitled Presentation"
+) -> str:
     """
     Create a new Google Slides presentation.
 
@@ -31,7 +33,9 @@ async def create_presentation(service, user_google_email: str, title: str = "Unt
     Returns:
         str: Details about the created presentation including ID and URL.
     """
-    logger.info(f"[create_presentation] Invoked. Email: '{user_google_email}', Title: '{title}'")
+    logger.info(
+        f"[create_presentation] Invoked. Email: '{user_google_email}', Title: '{title}'"
+    )
 
     body = {"title": title}
 
@@ -53,7 +57,9 @@ async def create_presentation(service, user_google_email: str, title: str = "Unt
 @server.tool()
 @handle_http_errors("get_presentation", is_read_only=True, service_type="slides")
 @require_google_service("slides", "slides_read")
-async def get_presentation(service, user_google_email: str, presentation_id: str) -> str:
+async def get_presentation(
+    service, user_google_email: str, presentation_id: str
+) -> str:
     """
     Get details about a Google Slides presentation.
 
@@ -64,7 +70,9 @@ async def get_presentation(service, user_google_email: str, presentation_id: str
     Returns:
         str: Details about the presentation including title, slides count, and metadata.
     """
-    logger.info(f"[get_presentation] Invoked. Email: '{user_google_email}', ID: '{presentation_id}'")
+    logger.info(
+        f"[get_presentation] Invoked. Email: '{user_google_email}', ID: '{presentation_id}'"
+    )
 
     result = await asyncio.to_thread(service.presentations().get(presentationId=presentation_id).execute)
 
@@ -76,7 +84,9 @@ async def get_presentation(service, user_google_email: str, presentation_id: str
     for i, slide in enumerate(slides, 1):
         slide_id = slide.get("objectId", "Unknown")
         page_elements = slide.get("pageElements", [])
-        slides_info.append(f"  Slide {i}: ID {slide_id}, {len(page_elements)} element(s)")
+        slides_info.append(
+            f"  Slide {i}: ID {slide_id}, {len(page_elements)} element(s)"
+        )
 
     confirmation_message = f"""Presentation Details for {user_google_email}:
 - Title: {title}
@@ -119,7 +129,9 @@ async def batch_update_presentation(
     body = {"requests": requests}
 
     result = await asyncio.to_thread(
-        service.presentations().batchUpdate(presentationId=presentation_id, body=body).execute
+        service.presentations()
+        .batchUpdate(presentationId=presentation_id, body=body)
+        .execute
     )
 
     replies = result.get("replies", [])
@@ -135,10 +147,14 @@ async def batch_update_presentation(
         for i, reply in enumerate(replies, 1):
             if "createSlide" in reply:
                 slide_id = reply["createSlide"].get("objectId", "Unknown")
-                confirmation_message += f"\n  Request {i}: Created slide with ID {slide_id}"
+                confirmation_message += (
+                    f"\n  Request {i}: Created slide with ID {slide_id}"
+                )
             elif "createShape" in reply:
                 shape_id = reply["createShape"].get("objectId", "Unknown")
-                confirmation_message += f"\n  Request {i}: Created shape with ID {shape_id}"
+                confirmation_message += (
+                    f"\n  Request {i}: Created shape with ID {shape_id}"
+                )
             else:
                 confirmation_message += f"\n  Request {i}: Operation completed"
 
@@ -149,7 +165,9 @@ async def batch_update_presentation(
 @server.tool()
 @handle_http_errors("get_page", is_read_only=True, service_type="slides")
 @require_google_service("slides", "slides_read")
-async def get_page(service, user_google_email: str, presentation_id: str, page_object_id: str) -> str:
+async def get_page(
+    service, user_google_email: str, presentation_id: str, page_object_id: str
+) -> str:
     """
     Get details about a specific page (slide) in a presentation.
 
@@ -166,7 +184,10 @@ async def get_page(service, user_google_email: str, presentation_id: str, page_o
     )
 
     result = await asyncio.to_thread(
-        service.presentations().pages().get(presentationId=presentation_id, pageObjectId=page_object_id).execute
+        service.presentations()
+        .pages()
+        .get(presentationId=presentation_id, pageObjectId=page_object_id)
+        .execute
     )
 
     page_type = result.get("pageType", "Unknown")
@@ -234,7 +255,8 @@ async def get_page_thumbnail(
         .getThumbnail(
             presentationId=presentation_id,
             pageObjectId=page_object_id,
-            thumbnailPropertiesImageSize=thumbnail_size,
+            thumbnailProperties_thumbnailSize=thumbnail_size,
+            thumbnailProperties_mimeType="PNG",
         )
         .execute
     )

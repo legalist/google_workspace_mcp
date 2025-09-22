@@ -1,10 +1,6 @@
-# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
-
-build:
-  dockerBuildPath: .
-
+runtime: "container"
 startCommand:
-  type: stdio
+  type: "http"
   configSchema:
     type: object
     required:
@@ -13,37 +9,93 @@ startCommand:
     properties:
       googleOauthClientId:
         type: string
-        description: "(required) - Your Google OAuth 2.0 Client ID from Google Cloud Console"
+        description: "Your Google OAuth 2.0 Client ID from Google Cloud Console"
       googleOauthClientSecret:
         type: string
-        description: "(required) - Your Google OAuth 2.0 Client Secret from Google Cloud Console"
+        description: "Your Google OAuth 2.0 Client Secret from Google Cloud Console"
+      userGoogleEmail:
+        type: string
+        default: ""
+        description: "Default email for single-user auth - avoids needing to specify email in system prompts"
       googleOauthRedirectUri:
         type: string
-        description: "(optional) - OAuth redirect URI - Default: http://localhost:8000/oauth2callback"
+        default: ""
+        description: "OAuth redirect URI - uses default http://localhost:8000/oauth2callback if not set"
       googleClientSecretPath:
         type: string
-        description: "(optional) - Path to client_secret.json file (alternative to environment variables)"
+        default: ""
+        description: "Path to client_secret.json file (alternative to environment variables)"
       workspaceMcpBaseUri:
         type: string
-        description: "(optional) - Base URI for the server - Default: http://localhost"
+        default: "http://localhost"
+        description: "Base URI for the server (do not include port)"
       workspaceMcpPort:
-        type: string
-        description: "(optional) - Port the server listens on - Default: 8000"
+        type: number
+        default: 8000
+        description: "Port the server listens on"
+      mcpSingleUserMode:
+        type: boolean
+        default: false
+        description: "Enable single-user mode - bypasses session mapping"
+      mcpEnableOauth21:
+        type: boolean
+        default: true
+        description: "Enable OAuth 2.1 multi-user support (requires streamable-http)"
       oauthlibInsecureTransport:
+        type: boolean
+        default: false
+        description: "Enable insecure transport for development environments"
+      googlePseApiKey:
         type: string
-        description: "(optional) - Set to '1' for development environments - Default: none"
+        default: ""
+        description: "API key for Google Custom Search - required for search tools"
+      googlePseEngineId:
+        type: string
+        default: ""
+        description: "Programmable Search Engine ID for Custom Search - required for search tools"
+      tools:
+        type: string
+        default: ""
+        description: "Comma-separated list of tools to enable (gmail,drive,calendar,docs,sheets,chat,forms,slides,tasks,search). Leave empty for all tools."
+      workspaceMcpStatelessMode:
+        type: boolean
+        default: true
+        description: "Enable stateless mode - no session persistence"
   commandFunction:
     |-
-    (config) => ({
-      command: 'python',
-      args: ['main.py', '--transport', 'streamable-http'],
-      env: {
-        GOOGLE_OAUTH_CLIENT_ID: config.googleOauthClientId,
-        GOOGLE_OAUTH_CLIENT_SECRET: config.googleOauthClientSecret,
-        ...(config.googleOauthRedirectUri && { GOOGLE_OAUTH_REDIRECT_URI: config.googleOauthRedirectUri }),
-        ...(config.googleClientSecretPath && { GOOGLE_CLIENT_SECRET_PATH: config.googleClientSecretPath }),
-        ...(config.workspaceMcpBaseUri && { WORKSPACE_MCP_BASE_URI: config.workspaceMcpBaseUri }),
-        ...(config.workspaceMcpPort && { WORKSPACE_MCP_PORT: config.workspaceMcpPort }),
-        ...(config.oauthlibInsecureTransport && { OAUTHLIB_INSECURE_TRANSPORT: config.oauthlibInsecureTransport })
+    (config) => {
+      const args = ['run', 'main.py', '--transport', 'streamable-http'];
+      
+      // Add single-user flag if enabled
+      if (config.mcpSingleUserMode) {
+        args.push('--single-user');
       }
-    })
+      
+      // Add tools selection if specified
+      if (config.tools && config.tools.trim() !== '') {
+        args.push('--tools');
+        args.push(...config.tools.split(',').map(t => t.trim()).filter(t => t));
+      }
+      
+      return {
+        command: 'uv',
+        args: ['run', 'python', 'main.py'],
+        env: {
+          GOOGLE_OAUTH_CLIENT_ID: config.googleOauthClientId,
+          GOOGLE_OAUTH_CLIENT_SECRET: config.googleOauthClientSecret,
+          ...(config.userGoogleEmail && { USER_GOOGLE_EMAIL: config.userGoogleEmail }),
+          ...(config.googleOauthRedirectUri && { GOOGLE_OAUTH_REDIRECT_URI: config.googleOauthRedirectUri }),
+          ...(config.googleClientSecretPath && { GOOGLE_CLIENT_SECRET_PATH: config.googleClientSecretPath }),
+          WORKSPACE_MCP_BASE_URI: config.workspaceMcpBaseUri,
+          WORKSPACE_MCP_PORT: String(config.workspaceMcpPort),
+          PORT: String(config.workspaceMcpPort),
+          ...(config.workspaceExternalUrl && { WORKSPACE_EXTERNAL_URL: config.workspaceExternalUrl }),
+          ...(config.mcpSingleUserMode && { MCP_SINGLE_USER_MODE: '1' }),
+          ...(config.mcpEnableOauth21 && { MCP_ENABLE_OAUTH21: 'true' }),
+          ...(config.workspaceMcpStatelessMode && { WORKSPACE_MCP_STATELESS_MODE: 'true' }),
+          ...(config.oauthlibInsecureTransport && { OAUTHLIB_INSECURE_TRANSPORT: '1' }),
+          ...(config.googlePseApiKey && { GOOGLE_PSE_API_KEY: config.googlePseApiKey }),
+          ...(config.googlePseEngineId && { GOOGLE_PSE_ENGINE_ID: config.googlePseEngineId })
+        }
+      };
+    }

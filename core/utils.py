@@ -11,6 +11,7 @@ from typing import List, Optional
 
 from googleapiclient.errors import HttpError
 from .api_enablement import get_api_enablement_message
+from auth.google_auth import GoogleAuthenticationError
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,9 @@ def extract_office_xml_text(file_bytes: bytes, mime_type: str) -> Optional[str]:
         return None
 
 
-def handle_http_errors(tool_name: str, is_read_only: bool = False, service_type: Optional[str] = None):
+def handle_http_errors(
+    tool_name: str, is_read_only: bool = False, service_type: Optional[str] = None
+):
     """
     A decorator to handle Google API HttpErrors and transient SSL errors in a standardized way.
 
@@ -236,8 +239,13 @@ def handle_http_errors(tool_name: str, is_read_only: bool = False, service_type:
                     error_details = str(error)
 
                     # Check if this is an API not enabled error
-                    if error.resp.status == 403 and "accessNotConfigured" in error_details:
-                        enablement_msg = get_api_enablement_message(error_details, service_type)
+                    if (
+                        error.resp.status == 403
+                        and "accessNotConfigured" in error_details
+                    ):
+                        enablement_msg = get_api_enablement_message(
+                            error_details, service_type
+                        )
 
                         if enablement_msg:
                             message = f"API error in {tool_name}: {enablement_msg}\n\nUser: {user_google_email}"
@@ -247,17 +255,24 @@ def handle_http_errors(tool_name: str, is_read_only: bool = False, service_type:
                                 f"The required API is not enabled for your project. "
                                 f"Please check the Google Cloud Console to enable it."
                             )
-                    else:
+                    elif error.resp.status in [401, 403]:
+                        # Authentication/authorization errors
                         message = (
                             f"API error in {tool_name}: {error}. "
                             f"You might need to re-authenticate for user '{user_google_email}'. "
                             f"LLM: Try 'start_google_auth' with the user's email and the appropriate service_name."
                         )
+                    else:
+                        # Other HTTP errors (400 Bad Request, etc.) - don't suggest re-auth
+                        message = f"API error in {tool_name}: {error}"
 
                     logger.error(f"API error in {tool_name}: {error}", exc_info=True)
                     raise Exception(message) from error
                 except TransientNetworkError:
                     # Re-raise without wrapping to preserve the specific error type
+                    raise
+                except GoogleAuthenticationError:
+                    # Re-raise authentication errors without wrapping
                     raise
                 except Exception as e:
                     message = f"An unexpected error occurred in {tool_name}: {e}"

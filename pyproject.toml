@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "workspace-mcp"
-version = "1.1.15"
+version = "1.4.7"
 description = "Comprehensive, highly performant Google Workspace Streamable HTTP & SSE MCP Server for Calendar, Gmail, Docs, Sheets, Slides & Drive"
 readme = "README.md"
 keywords = [ "mcp", "google", "workspace", "llm", "ai", "claude", "model", "context", "protocol", "server"]
 requires-python = ">=3.10"
 dependencies = [
  "fastapi>=0.115.12",
- "fastmcp>=2.3.3",
+ "fastmcp==2.11.3",
  "google-api-python-client>=2.168.0",
  "google-auth-httplib2>=0.2.0",
  "google-auth-oauthlib>=1.2.2",
@@ -19,6 +19,10 @@ dependencies = [
  "pyjwt>=2.10.1",
  "ruff>=0.12.4",
  "tomlkit",
+ "aiohttp>=3.9.0",
+ "cachetools>=5.3.0",
+ "cryptography>=41.0.0",
+ "python-dotenv>=1.1.0",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -57,28 +61,14 @@ Changelog = "https://github.com/taylorwilsdon/google_workspace_mcp/releases"
 [project.scripts]
 workspace-mcp = "main:main"
 
+[project.optional-dependencies]
+dev = [
+    "twine>=5.0.0",
+]
+
 [tool.setuptools]
-packages = [ "auth", "gcalendar", "core", "gdocs", "gdrive", "gmail", "gchat", "gsheets", "gforms", "gslides", "gtasks"]
+packages = [ "auth", "gcalendar", "core", "gdocs", "gdocs.managers", "gdrive", "gmail", "gchat", "gsheets", "gforms", "gslides", "gtasks", "gsearch"]
 py-modules = [ "main"]
 
-[tool.ruff]
-line-length = 120
-target-version = "py311"
-fix = true
-extend-exclude = [
-    ".git",
-    ".hg",
-    ".mypy_cache",
-    ".tox",
-    ".venv",
-    ".env",
-    "env",
-    "venv",
-    ".venv3",
-    "venv3",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-]
-[tool.ruff.format]
+[tool.setuptools.package-data]
+core = ["tool_tiers.yaml"]
