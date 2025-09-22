@@ -13,9 +13,6 @@ from auth.fastmcp_google_auth import GoogleWorkspaceAuthProvider
 from auth.google_auth import handle_auth_callback, start_auth_flow, check_client_secrets
 from auth.mcp_session_middleware import MCPSessionMiddleware
 from auth.oauth21_session_store import get_oauth21_session_store, set_auth_provider
-from auth.oauth_callback_server import (
-    ensure_oauth_callback_available,
-)
 from auth.oauth_responses import (
     create_error_response,
     create_success_response,
@@ -234,20 +231,6 @@ async def start_google_auth(service_name: str, user_google_email: str = USER_GOO
     if error_message:
         return f"**Authentication Error:** {error_message}"
 
-    logger.info(
-        f"Tool 'start_google_auth' invoked for user_google_email: '{user_google_email}', service: '{service_name}'."
-    )
-
-    # Ensure OAuth callback is available for current transport mode
-    redirect_uri = get_oauth_redirect_uri_for_current_mode()
-    success, error_msg = ensure_oauth_callback_available(
-        get_transport_mode(), WORKSPACE_MCP_PORT, WORKSPACE_MCP_BASE_URI
-    )
-    if not success:
-        if error_msg:
-            raise Exception(f"Failed to start OAuth callback server: {error_msg}")
-        else:
-            raise Exception("Failed to start OAuth callback server. Please try again.")
     try:
         auth_message = await start_auth_flow(
             user_google_email=user_google_email,
