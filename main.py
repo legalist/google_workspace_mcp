@@ -6,6 +6,7 @@ import sys
 from importlib import metadata
 from dotenv import load_dotenv
 
+from auth.domain_delegation import get_domain_delegation_status
 from auth.oauth_config import reload_oauth_config, is_stateless_mode
 from core.log_formatter import EnhancedLogFormatter, configure_file_logging
 from core.utils import check_credentials_directory_permissions
@@ -83,6 +84,11 @@ def main():
         "--single-user",
         action="store_true",
         help="Run in single-user mode - bypass session mapping and use any credentials from the credentials directory",
+    )
+    parser.add_argument(
+        "--domain-delegation",
+        action="store_true",
+        help="Enable domain-wide delegation mode - use service account to impersonate users instead of OAuth",
     )
     parser.add_argument(
         "--tools",
@@ -249,6 +255,14 @@ def main():
         os.environ["MCP_SINGLE_USER_MODE"] = "1"
         safe_print("🔐 Single-user mode enabled")
         safe_print("")
+
+    # Set domain-delegation mode flag
+    if args.domain_delegation:
+        os.environ["MCP_DOMAIN_DELEGATION"] = "1"
+        get_domain_delegation_status()
+        safe_print("🔑 Domain-delegation mode enabled")
+        safe_print("")
+
 
     # Check credentials directory permissions before starting (skip in stateless mode)
     if not is_stateless_mode():
