@@ -35,22 +35,14 @@ class OAuthConfig:
         self.client_secret = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
 
         # OAuth 2.1 configuration
-        self.oauth21_enabled = (
-            os.getenv("MCP_ENABLE_OAUTH21", "false").lower() == "true"
-        )
+        self.oauth21_enabled = os.getenv("MCP_ENABLE_OAUTH21", "false").lower() == "true"
         self.pkce_required = self.oauth21_enabled  # PKCE is mandatory in OAuth 2.1
-        self.supported_code_challenge_methods = (
-            ["S256", "plain"] if not self.oauth21_enabled else ["S256"]
-        )
+        self.supported_code_challenge_methods = ["S256", "plain"] if not self.oauth21_enabled else ["S256"]
 
         # Stateless mode configuration
-        self.stateless_mode = (
-            os.getenv("WORKSPACE_MCP_STATELESS_MODE", "false").lower() == "true"
-        )
+        self.stateless_mode = os.getenv("WORKSPACE_MCP_STATELESS_MODE", "false").lower() == "true"
         if self.stateless_mode and not self.oauth21_enabled:
-            raise ValueError(
-                "WORKSPACE_MCP_STATELESS_MODE requires MCP_ENABLE_OAUTH21=true"
-            )
+            raise ValueError("WORKSPACE_MCP_STATELESS_MODE requires MCP_ENABLE_OAUTH21=true")
 
         # Transport mode (will be set at runtime)
         self._transport_mode = "stdio"  # Default
@@ -249,9 +241,7 @@ class OAuthConfig:
         # Default to OAuth 2.0 for maximum compatibility
         return "oauth20"
 
-    def get_authorization_server_metadata(
-        self, scopes: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+    def get_authorization_server_metadata(self, scopes: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Get OAuth authorization server metadata per RFC 8414.
 

@@ -49,9 +49,7 @@ class GoogleWorkspaceAuthProvider(AuthProvider):
         self.port = config.port
 
         if not self.client_id:
-            logger.warning(
-                "GOOGLE_OAUTH_CLIENT_ID not set - OAuth 2.1 authentication will not work"
-            )
+            logger.warning("GOOGLE_OAUTH_CLIENT_ID not set - OAuth 2.1 authentication will not work")
             return
 
         # Initialize JWT verifier for Google tokens
@@ -98,9 +96,7 @@ class GoogleWorkspaceAuthProvider(AuthProvider):
                         ctx = get_context()
                         if ctx and hasattr(ctx, "session_id"):
                             mcp_session_id = ctx.session_id
-                            logger.debug(
-                                f"Binding MCP session {mcp_session_id} to user {user_email}"
-                            )
+                            logger.debug(f"Binding MCP session {mcp_session_id} to user {user_email}")
                     except Exception:
                         pass
 
@@ -112,9 +108,7 @@ class GoogleWorkspaceAuthProvider(AuthProvider):
                         mcp_session_id=mcp_session_id,
                     )
 
-                logger.debug(
-                    f"Successfully verified Google token for user: {user_email}"
-                )
+                logger.debug(f"Successfully verified Google token for user: {user_email}")
 
             return access_token
 
@@ -175,7 +169,5 @@ class GoogleWorkspaceAuthProvider(AuthProvider):
         store = get_oauth21_session_store()
         session_id = f"google_{user_email}"
 
-        store.store_session(
-            user_email=user_email, access_token=token, session_id=session_id
-        )
+        store.store_session(user_email=user_email, access_token=token, session_id=session_id)
         return session_id

@@ -78,9 +78,7 @@ class TableOperationManager:
                 return False, "Could not find table after creation", {}
 
             # Step 3: Populate each cell with proper index refreshing
-            population_count = await self._populate_table_cells(
-                document_id, table_data, bold_headers
-            )
+            population_count = await self._populate_table_cells(document_id, table_data, bold_headers)
 
             metadata = {
                 "rows": rows,
@@ -99,9 +97,7 @@ class TableOperationManager:
             logger.error(f"Failed to create and populate table: {str(e)}")
             return False, f"Table creation failed: {str(e)}", {}
 
-    async def _create_empty_table(
-        self, document_id: str, index: int, rows: int, cols: int
-    ) -> None:
+    async def _create_empty_table(self, document_id: str, index: int, rows: int, cols: int) -> None:
         """Create an empty table at the specified index."""
         logger.debug(f"Creating {rows}x{cols} table at index {index}")
 
@@ -116,14 +112,10 @@ class TableOperationManager:
 
     async def _get_document_tables(self, document_id: str) -> List[Dict[str, Any]]:
         """Get fresh document structure and extract table information."""
-        doc = await asyncio.to_thread(
-            self.service.documents().get(documentId=document_id).execute
-        )
+        doc = await asyncio.to_thread(self.service.documents().get(documentId=document_id).execute)
         return find_tables(doc)
 
-    async def _populate_table_cells(
-        self, document_id: str, table_data: List[List[str]], bold_headers: bool
-    ) -> int:
+    async def _populate_table_cells(self, document_id: str, table_data: List[List[str]], bold_headers: bool) -> int:
         """
         Populate table cells with data, refreshing structure after each insertion.
 
@@ -156,9 +148,7 @@ class TableOperationManager:
                         logger.warning(f"Failed to populate cell ({row_idx},{col_idx})")
 
                 except Exception as e:
-                    logger.error(
-                        f"Error populating cell ({row_idx},{col_idx}): {str(e)}"
-                    )
+                    logger.error(f"Error populating cell ({row_idx},{col_idx}): {str(e)}")
 
         return population_count
 
@@ -217,9 +207,7 @@ class TableOperationManager:
 
             # Apply bold formatting if requested
             if apply_bold:
-                await self._apply_bold_formatting(
-                    document_id, insertion_index, insertion_index + len(cell_text)
-                )
+                await self._apply_bold_formatting(document_id, insertion_index, insertion_index + len(cell_text))
 
             return True
 
@@ -227,9 +215,7 @@ class TableOperationManager:
             logger.error(f"Failed to populate single cell: {str(e)}")
             return False
 
-    async def _apply_bold_formatting(
-        self, document_id: str, start_index: int, end_index: int
-    ) -> None:
+    async def _apply_bold_formatting(self, document_id: str, start_index: int, end_index: int) -> None:
         """Apply bold formatting to a text range."""
         await asyncio.to_thread(
             self.service.documents()
@@ -297,9 +283,7 @@ class TableOperationManager:
                 )
 
             # Populate cells
-            population_count = await self._populate_existing_table_cells(
-                document_id, table_index, table_data
-            )
+            population_count = await self._populate_existing_table_cells(document_id, table_index, table_data)
 
             metadata = {
                 "table_index": table_index,
@@ -365,8 +349,6 @@ class TableOperationManager:
                     population_count += 1
 
                 except Exception as e:
-                    logger.error(
-                        f"Failed to populate existing cell ({row_idx},{col_idx}): {str(e)}"
-                    )
+                    logger.error(f"Failed to populate existing cell ({row_idx},{col_idx}): {str(e)}")
 
         return population_count

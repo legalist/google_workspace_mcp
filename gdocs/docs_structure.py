@@ -80,9 +80,7 @@ def _parse_element(element: dict[str, Any]) -> Optional[dict[str, Any]]:
         table = element["table"]
         element_info["type"] = "table"
         element_info["rows"] = len(table.get("tableRows", []))
-        element_info["columns"] = len(
-            table.get("tableRows", [{}])[0].get("tableCells", [])
-        )
+        element_info["columns"] = len(table.get("tableRows", [{}])[0].get("tableCells", []))
         element_info["cells"] = _parse_table_cells(table)
         element_info["table_style"] = table.get("tableStyle", {})
 
@@ -165,12 +163,8 @@ def _parse_segment(segment_data: dict[str, Any]) -> dict[str, Any]:
     """Parse a document segment (header/footer)."""
     return {
         "content": segment_data.get("content", []),
-        "start_index": segment_data.get("content", [{}])[0].get("startIndex", 0)
-        if segment_data.get("content")
-        else 0,
-        "end_index": segment_data.get("content", [{}])[-1].get("endIndex", 0)
-        if segment_data.get("content")
-        else 0,
+        "start_index": segment_data.get("content", [{}])[0].get("startIndex", 0) if segment_data.get("content") else 0,
+        "end_index": segment_data.get("content", [{}])[-1].get("endIndex", 0) if segment_data.get("content") else 0,
     }
 
 
@@ -202,9 +196,7 @@ def find_tables(doc_data: dict[str, Any]) -> list[dict[str, Any]]:
     return tables
 
 
-def get_table_cell_indices(
-    doc_data: dict[str, Any], table_index: int = 0
-) -> Optional[list[list[tuple[int, int]]]]:
+def get_table_cell_indices(doc_data: dict[str, Any], table_index: int = 0) -> Optional[list[list[tuple[int, int]]]]:
     """
     Get content indices for all cells in a specific table.
 
@@ -218,9 +210,7 @@ def get_table_cell_indices(
     tables = find_tables(doc_data)
 
     if table_index >= len(tables):
-        logger.warning(
-            f"Table index {table_index} not found. Document has {len(tables)} tables."
-        )
+        logger.warning(f"Table index {table_index} not found. Document has {len(tables)} tables.")
         return None
 
     table = tables[table_index]
@@ -244,9 +234,7 @@ def get_table_cell_indices(
                     # Insert at the start of the first text run in the paragraph
                     first_text_element = first_para["elements"][0]
                     if "textRun" in first_text_element:
-                        start_idx = first_text_element.get(
-                            "startIndex", cell["start_index"] + 1
-                        )
+                        start_idx = first_text_element.get("startIndex", cell["start_index"] + 1)
                         end_idx = first_text_element.get("endIndex", start_idx + 1)
                         row_indices.append((start_idx, end_idx))
                         continue
@@ -260,9 +248,7 @@ def get_table_cell_indices(
     return cell_indices
 
 
-def find_element_at_index(
-    doc_data: dict[str, Any], index: int
-) -> Optional[dict[str, Any]]:
+def find_element_at_index(doc_data: dict[str, Any], index: int) -> Optional[dict[str, Any]]:
     """
     Find what element exists at a given index in the document.
 
@@ -336,9 +322,7 @@ def analyze_document_complexity(doc_data: dict[str, Any]) -> dict[str, Any]:
         "total_elements": len(structure["body"]),
         "tables": len(structure["tables"]),
         "paragraphs": sum(1 for e in structure["body"] if e.get("type") == "paragraph"),
-        "section_breaks": sum(
-            1 for e in structure["body"] if e.get("type") == "section_break"
-        ),
+        "section_breaks": sum(1 for e in structure["body"] if e.get("type") == "section_break"),
         "total_length": structure["total_length"],
         "has_headers": bool(structure["headers"]),
         "has_footers": bool(structure["footers"]),
@@ -346,12 +330,8 @@ def analyze_document_complexity(doc_data: dict[str, Any]) -> dict[str, Any]:
 
     # Add table statistics
     if structure["tables"]:
-        total_cells = sum(
-            table["rows"] * table["columns"] for table in structure["tables"]
-        )
+        total_cells = sum(table["rows"] * table["columns"] for table in structure["tables"])
         stats["total_table_cells"] = total_cells
-        stats["largest_table"] = max(
-            (t["rows"] * t["columns"] for t in structure["tables"]), default=0
-        )
+        stats["largest_table"] = max((t["rows"] * t["columns"] for t in structure["tables"]), default=0)
 
     return stats

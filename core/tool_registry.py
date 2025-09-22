@@ -100,6 +100,4 @@ def filter_server_tools(server):
                 tools_removed += 1
 
     if tools_removed > 0:
-        logger.info(
-            f"Tool tier filtering: removed {tools_removed} tools, {len(enabled_tools)} enabled"
-        )
+        logger.info(f"Tool tier filtering: removed {tools_removed} tools, {len(enabled_tools)} enabled")

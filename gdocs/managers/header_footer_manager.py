@@ -70,9 +70,7 @@ class HeaderFooterManager:
             doc = await self._get_document(document_id)
 
             # Find the target section
-            target_section, section_id = await self._find_target_section(
-                doc, section_type, header_footer_type
-            )
+            target_section, section_id = await self._find_target_section(doc, section_type, header_footer_type)
 
             if not target_section:
                 return (
@@ -81,9 +79,7 @@ class HeaderFooterManager:
                 )
 
             # Update the content
-            success = await self._replace_section_content(
-                document_id, target_section, content
-            )
+            success = await self._replace_section_content(document_id, target_section, content)
 
             if success:
                 return True, f"Updated {section_type} content in document {document_id}"
@@ -99,9 +95,7 @@ class HeaderFooterManager:
 
     async def _get_document(self, document_id: str) -> dict[str, Any]:
         """Get the full document data."""
-        return await asyncio.to_thread(
-            self.service.documents().get(documentId=document_id).execute
-        )
+        return await asyncio.to_thread(self.service.documents().get(documentId=document_id).execute)
 
     async def _find_target_section(
         self, doc: dict[str, Any], section_type: str, header_footer_type: str
@@ -153,9 +147,7 @@ class HeaderFooterManager:
 
         return None, None
 
-    async def _replace_section_content(
-        self, document_id: str, section: dict[str, Any], new_content: str
-    ) -> bool:
+    async def _replace_section_content(self, document_id: str, section: dict[str, Any], new_content: str) -> bool:
         """
         Replace the content in a header or footer section.
 
@@ -197,15 +189,11 @@ class HeaderFooterManager:
             )
 
         # Insert new content
-        requests.append(
-            {"insertText": {"location": {"index": start_index}, "text": new_content}}
-        )
+        requests.append({"insertText": {"location": {"index": start_index}, "text": new_content}})
 
         try:
             await asyncio.to_thread(
-                self.service.documents()
-                .batchUpdate(documentId=document_id, body={"requests": requests})
-                .execute
+                self.service.documents().batchUpdate(documentId=document_id, body={"requests": requests}).execute
             )
             return True
 
@@ -213,9 +201,7 @@ class HeaderFooterManager:
             logger.error(f"Failed to replace section content: {str(e)}")
             return False
 
-    def _find_first_paragraph(
-        self, content_elements: list[dict[str, Any]]
-    ) -> Optional[dict[str, Any]]:
+    def _find_first_paragraph(self, content_elements: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
         """Find the first paragraph element in content."""
         for element in content_elements:
             if "paragraph" in element:
@@ -270,12 +256,8 @@ class HeaderFooterManager:
         return {
             "content_preview": text_content[:100] if text_content else "(empty)",
             "element_count": len(content_elements),
-            "start_index": content_elements[0].get("startIndex", 0)
-            if content_elements
-            else 0,
-            "end_index": content_elements[-1].get("endIndex", 0)
-            if content_elements
-            else 0,
+            "start_index": content_elements[0].get("startIndex", 0) if content_elements else 0,
+            "end_index": content_elements[-1].get("endIndex", 0) if content_elements else 0,
         }
 
     async def create_header_footer(
@@ -322,9 +304,7 @@ class HeaderFooterManager:
 
             # Execute the request
             await asyncio.to_thread(
-                self.service.documents()
-                .batchUpdate(documentId=document_id, body={"requests": [batch_request]})
-                .execute
+                self.service.documents().batchUpdate(documentId=document_id, body={"requests": [batch_request]}).execute
             )
 
             return True, f"Successfully created {section_type} with type {api_type}"

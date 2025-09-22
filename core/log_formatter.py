@@ -82,9 +82,7 @@ class EnhancedLogFormatter(logging.Formatter):
         # Tool tier loading messages
         if "resolved to" in message and "tools across" in message:
             # Extract numbers and service names for better formatting
-            pattern = (
-                r"Tier '(\w+)' resolved to (\d+) tools across (\d+) services: (.+)"
-            )
+            pattern = r"Tier '(\w+)' resolved to (\d+) tools across (\d+) services: (.+)"
             match = re.search(pattern, message)
             if match:
                 tier, tool_count, service_count, services = match.groups()
@@ -117,9 +115,7 @@ class EnhancedLogFormatter(logging.Formatter):
         return message
 
 
-def setup_enhanced_logging(
-    log_level: int = logging.INFO, use_colors: bool = True
-) -> None:
+def setup_enhanced_logging(log_level: int = logging.INFO, use_colors: bool = True) -> None:
     """
     Set up enhanced logging with ASCII prefix formatter for the entire application.
 
@@ -145,8 +141,7 @@ def setup_enhanced_logging(
     console_handlers = [
         h
         for h in root_logger.handlers
-        if isinstance(h, logging.StreamHandler)
-        and h.stream.name in ["<stderr>", "<stdout>"]
+        if isinstance(h, logging.StreamHandler) and h.stream.name in ["<stderr>", "<stdout>"]
     ]
 
     if not console_handlers:
@@ -170,9 +165,7 @@ def configure_file_logging(logger_name: str = None) -> bool:
         bool: True if file logging was configured, False if skipped (stateless mode)
     """
     # Check if stateless mode is enabled
-    stateless_mode = (
-        os.getenv("WORKSPACE_MCP_STATELESS_MODE", "false").lower() == "true"
-    )
+    stateless_mode = os.getenv("WORKSPACE_MCP_STATELESS_MODE", "false").lower() == "true"
 
     if stateless_mode:
         logger = logging.getLogger(logger_name)
@@ -202,7 +195,5 @@ def configure_file_logging(logger_name: str = None) -> bool:
         return True
 
     except Exception as e:
-        sys.stderr.write(
-            f"CRITICAL: Failed to set up file logging to '{log_file_path}': {e}\n"
-        )
+        sys.stderr.write(f"CRITICAL: Failed to set up file logging to '{log_file_path}': {e}\n")
         return False

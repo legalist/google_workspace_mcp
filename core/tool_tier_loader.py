@@ -39,9 +39,7 @@ class ToolTierLoader:
             return self._tiers_config
 
         if not self.config_path.exists():
-            raise FileNotFoundError(
-                f"Tool tiers configuration not found: {self.config_path}"
-            )
+            raise FileNotFoundError(f"Tool tiers configuration not found: {self.config_path}")
 
         try:
             with open(self.config_path, "r", encoding="utf-8") as f:
@@ -58,9 +56,7 @@ class ToolTierLoader:
         config = self._load_config()
         return list(config.keys())
 
-    def get_tools_for_tier(
-        self, tier: TierLevel, services: Optional[List[str]] = None
-    ) -> List[str]:
+    def get_tools_for_tier(self, tier: TierLevel, services: Optional[List[str]] = None) -> List[str]:
         """
         Get all tools for a specific tier level.
 
@@ -80,9 +76,7 @@ class ToolTierLoader:
 
         for service in services:
             if service not in config:
-                logger.warning(
-                    f"Service '{service}' not found in tool tiers configuration"
-                )
+                logger.warning(f"Service '{service}' not found in tool tiers configuration")
                 continue
 
             service_config = config[service]
@@ -96,9 +90,7 @@ class ToolTierLoader:
 
         return tools
 
-    def get_tools_up_to_tier(
-        self, tier: TierLevel, services: Optional[List[str]] = None
-    ) -> List[str]:
+    def get_tools_up_to_tier(self, tier: TierLevel, services: Optional[List[str]] = None) -> List[str]:
         """
         Get all tools up to and including the specified tier level.
 
@@ -149,9 +141,7 @@ class ToolTierLoader:
         return services
 
 
-def get_tools_for_tier(
-    tier: TierLevel, services: Optional[List[str]] = None
-) -> List[str]:
+def get_tools_for_tier(tier: TierLevel, services: Optional[List[str]] = None) -> List[str]:
     """
     Convenience function to get tools for a specific tier.
 
@@ -166,9 +156,7 @@ def get_tools_for_tier(
     return loader.get_tools_up_to_tier(tier, services)
 
 
-def resolve_tools_from_tier(
-    tier: TierLevel, services: Optional[List[str]] = None
-) -> tuple[List[str], List[str]]:
+def resolve_tools_from_tier(tier: TierLevel, services: Optional[List[str]] = None) -> tuple[List[str], List[str]]:
     """
     Resolve tool names and service names for the specified tier.
 

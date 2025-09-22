@@ -68,9 +68,7 @@ class BatchOperationManager:
 
         try:
             # Validate and build requests
-            requests, operation_descriptions = await self._validate_and_build_requests(
-                operations
-            )
+            requests, operation_descriptions = await self._validate_and_build_requests(operations)
 
             if not requests:
                 return False, "No valid requests could be built from operations", {}
@@ -137,13 +135,9 @@ class BatchOperationManager:
                     operation_descriptions.append(result[1])
 
             except KeyError as e:
-                raise ValueError(
-                    f"Operation {i + 1} ({op_type}) missing required field: {e}"
-                )
+                raise ValueError(f"Operation {i + 1} ({op_type}) missing required field: {e}")
             except Exception as e:
-                raise ValueError(
-                    f"Operation {i + 1} ({op_type}) failed validation: {str(e)}"
-                )
+                raise ValueError(f"Operation {i + 1} ({op_type}) failed validation: {str(e)}")
 
         return requests, operation_descriptions
 
@@ -170,9 +164,7 @@ class BatchOperationManager:
 
         elif op_type == "replace_text":
             # Replace is delete + insert (must be done in this order)
-            delete_request = create_delete_range_request(
-                op["start_index"], op["end_index"]
-            )
+            delete_request = create_delete_range_request(op["start_index"], op["end_index"])
             insert_request = create_insert_text_request(op["start_index"], op["text"])
             # Return both requests as a list
             request = [delete_request, insert_request]
@@ -208,9 +200,7 @@ class BatchOperationManager:
             description = f"format text {op['start_index']}-{op['end_index']} ({', '.join(format_changes)})"
 
         elif op_type == "insert_table":
-            request = create_insert_table_request(
-                op["index"], op["rows"], op["columns"]
-            )
+            request = create_insert_table_request(op["index"], op["rows"], op["columns"])
             description = f"insert {op['rows']}x{op['columns']} table at {op['index']}"
 
         elif op_type == "insert_page_break":
@@ -218,9 +208,7 @@ class BatchOperationManager:
             description = f"insert page break at {op['index']}"
 
         elif op_type == "find_replace":
-            request = create_find_replace_request(
-                op["find_text"], op["replace_text"], op.get("match_case", False)
-            )
+            request = create_find_replace_request(op["find_text"], op["replace_text"], op.get("match_case", False))
             description = f"find/replace '{op['find_text']}' → '{op['replace_text']}'"
 
         else:
@@ -233,15 +221,11 @@ class BatchOperationManager:
                 "insert_page_break",
                 "find_replace",
             ]
-            raise ValueError(
-                f"Unsupported operation type '{op_type}'. Supported: {', '.join(supported_types)}"
-            )
+            raise ValueError(f"Unsupported operation type '{op_type}'. Supported: {', '.join(supported_types)}")
 
         return request, description
 
-    async def _execute_batch_requests(
-        self, document_id: str, requests: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    async def _execute_batch_requests(self, document_id: str, requests: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Execute the batch requests against the Google Docs API.
 
@@ -253,9 +237,7 @@ class BatchOperationManager:
             API response
         """
         return await asyncio.to_thread(
-            self.service.documents()
-            .batchUpdate(documentId=document_id, body={"requests": requests})
-            .execute
+            self.service.documents().batchUpdate(documentId=document_id, body={"requests": requests}).execute
         )
 
     def _build_operation_summary(self, operation_descriptions: list[str]) -> str:

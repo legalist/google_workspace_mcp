@@ -82,9 +82,7 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-_auth_provider: Optional[
-    Union[GoogleWorkspaceAuthProvider, GoogleRemoteAuthProvider]
-] = None
+_auth_provider: Optional[Union[GoogleWorkspaceAuthProvider, GoogleRemoteAuthProvider]] = None
 
 session_middleware = Middleware(MCPSessionMiddleware)
 
@@ -150,36 +148,28 @@ def configure_server_for_http():
             return
 
         if not GOOGLE_REMOTE_AUTH_AVAILABLE:
-            logger.error(
-                "CRITICAL: OAuth 2.1 enabled but FastMCP 2.11.1+ is not properly installed."
-            )
+            logger.error("CRITICAL: OAuth 2.1 enabled but FastMCP 2.11.1+ is not properly installed.")
             logger.error("Please run: uv sync --frozen")
             raise RuntimeError(
                 "OAuth 2.1 requires FastMCP 2.11.1+ with RemoteAuthProvider support. "
                 "Please reinstall dependencies using 'uv sync --frozen'."
             )
 
-        logger.info(
-            "OAuth 2.1 enabled with automatic OAuth 2.0 fallback for legacy clients"
-        )
+        logger.info("OAuth 2.1 enabled with automatic OAuth 2.0 fallback for legacy clients")
         try:
             _auth_provider = GoogleRemoteAuthProvider()
             server.auth = _auth_provider
             set_auth_provider(_auth_provider)
             logger.debug("OAuth 2.1 authentication enabled")
         except Exception as e:
-            logger.error(
-                f"Failed to initialize GoogleRemoteAuthProvider: {e}", exc_info=True
-            )
+            logger.error(f"Failed to initialize GoogleRemoteAuthProvider: {e}", exc_info=True)
             raise
     else:
         logger.info("OAuth 2.0 mode - Server will use legacy authentication.")
         server.auth = None
 
 
-def get_auth_provider() -> Optional[
-    Union[GoogleWorkspaceAuthProvider, GoogleRemoteAuthProvider]
-]:
+def get_auth_provider() -> Optional[Union[GoogleWorkspaceAuthProvider, GoogleRemoteAuthProvider]]:
     """Gets the global authentication provider instance."""
     return _auth_provider
 
@@ -207,9 +197,7 @@ async def oauth2_callback(request: Request) -> HTMLResponse:
     error = request.query_params.get("error")
 
     if error:
-        msg = (
-            f"Authentication failed: Google returned an error: {error}. State: {state}."
-        )
+        msg = f"Authentication failed: Google returned an error: {error}. State: {state}."
         logger.error(msg)
         return create_error_response(msg)
 
@@ -232,9 +220,7 @@ async def oauth2_callback(request: Request) -> HTMLResponse:
             session_id=None,
         )
 
-        logger.info(
-            f"OAuth callback: Successfully authenticated user: {verified_user_id} ."
-        )
+        logger.info(f"OAuth callback: Successfully authenticated user: {verified_user_id} .")
 
         try:
             store = get_oauth21_session_store()
@@ -254,9 +240,7 @@ async def oauth2_callback(request: Request) -> HTMLResponse:
                 session_id=f"google-{state}",
                 mcp_session_id=mcp_session_id,
             )
-            logger.info(
-                f"Stored Google credentials in OAuth 2.1 session store for {verified_user_id}"
-            )
+            logger.info(f"Stored Google credentials in OAuth 2.1 session store for {verified_user_id}")
         except Exception as e:
             logger.error(f"Failed to store credentials in OAuth 2.1 store: {e}")
 
@@ -267,9 +251,7 @@ async def oauth2_callback(request: Request) -> HTMLResponse:
 
 
 @server.tool()
-async def start_google_auth(
-    service_name: str, user_google_email: str = USER_GOOGLE_EMAIL
-) -> str:
+async def start_google_auth(service_name: str, user_google_email: str = USER_GOOGLE_EMAIL) -> str:
     """
     Manually initiate Google OAuth authentication flow.
 

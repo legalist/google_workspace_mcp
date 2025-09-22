@@ -66,9 +66,7 @@ def extract_api_info_from_error(
     return api_service, project_id
 
 
-def get_api_enablement_message(
-    error_details: str, service_type: Optional[str] = None
-) -> str:
+def get_api_enablement_message(error_details: str, service_type: Optional[str] = None) -> str:
     """
     Generate a helpful error message with direct API enablement link.
 

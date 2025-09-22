@@ -35,9 +35,7 @@ def build_table_population_requests(
     # Process each cell - ONLY INSERT, DON'T DELETE
     for row_idx, row_data in enumerate(data):
         if row_idx >= len(cells):
-            logger.warning(
-                f"Data has more rows ({len(data)}) than table ({len(cells)})"
-            )
+            logger.warning(f"Data has more rows ({len(data)}) than table ({len(cells)})")
             break
 
         for col_idx, cell_text in enumerate(row_data):
@@ -248,9 +246,7 @@ def create_table_with_data(
             row.append("")
 
     # Create the table
-    requests.append(
-        {"insertTable": {"location": {"index": index}, "rows": rows, "columns": cols}}
-    )
+    requests.append({"insertTable": {"location": {"index": index}, "rows": rows, "columns": cols}})
 
     # Build text insertion requests for each cell
     # Note: In practice, we'd need to get the actual document structure
@@ -259,9 +255,7 @@ def create_table_with_data(
     return requests
 
 
-def build_table_style_requests(
-    table_start_index: int, style_options: Dict[str, Any]
-) -> List[Dict[str, Any]]:
+def build_table_style_requests(table_start_index: int, style_options: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     Build requests to style a table.
 
@@ -279,9 +273,7 @@ def build_table_style_requests(
     requests = []
 
     # Table cell style update
-    if any(
-        k in style_options for k in ["border_width", "border_color", "background_color"]
-    ):
+    if any(k in style_options for k in ["border_width", "border_color", "background_color"]):
         table_cell_style = {}
         fields = []
 
@@ -302,9 +294,7 @@ def build_table_style_requests(
                 table_cell_style["borderRight"]["color"] = border_color["color"]
 
         if "background_color" in style_options:
-            table_cell_style["backgroundColor"] = {
-                "color": {"rgbColor": style_options["background_color"]}
-            }
+            table_cell_style["backgroundColor"] = {"color": {"rgbColor": style_options["background_color"]}}
             fields.append("backgroundColor")
 
         if table_cell_style and fields:
@@ -332,11 +322,7 @@ def build_table_style_requests(
                         "rowSpan": 1,
                         "columnSpan": 100,  # Large number to cover all columns
                     },
-                    "tableCellStyle": {
-                        "backgroundColor": {
-                            "color": {"rgbColor": style_options["header_background"]}
-                        }
-                    },
+                    "tableCellStyle": {"backgroundColor": {"color": {"rgbColor": style_options["header_background"]}}},
                     "fields": "backgroundColor",
                 }
             }

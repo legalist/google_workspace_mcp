@@ -21,9 +21,7 @@ WORKSPACE_MCP_PORT = int(os.getenv("PORT", os.getenv("WORKSPACE_MCP_PORT", 8000)
 WORKSPACE_MCP_BASE_URI = os.getenv("WORKSPACE_MCP_BASE_URI", "http://localhost")
 
 # Disable USER_GOOGLE_EMAIL in OAuth 2.1 multi-user mode
-USER_GOOGLE_EMAIL = (
-    None if is_oauth21_enabled() else os.getenv("USER_GOOGLE_EMAIL", None)
-)
+USER_GOOGLE_EMAIL = None if is_oauth21_enabled() else os.getenv("USER_GOOGLE_EMAIL", None)
 
 # Re-export OAuth functions for backward compatibility
 __all__ = [

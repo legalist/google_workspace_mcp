@@ -25,13 +25,10 @@ logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
 
 reload_oauth_config()
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 configure_file_logging()
-
 
 
 def safe_print(text):
@@ -58,11 +55,7 @@ def configure_safe_logging():
             except UnicodeEncodeError:
                 # Fallback to ASCII-safe formatting
                 service_prefix = self._get_ascii_prefix(record.name, record.levelname)
-                safe_msg = (
-                    str(record.getMessage())
-                    .encode("ascii", errors="replace")
-                    .decode("ascii")
-                )
+                safe_msg = str(record.getMessage()).encode("ascii", errors="replace").decode("ascii")
                 return f"{service_prefix} {safe_msg}"
 
     # Replace all console handlers' formatters with safe enhanced ones
@@ -149,9 +142,7 @@ def main():
     # Redact client secret for security
     client_secret = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "Not Set")
     redacted_secret = (
-        f"{client_secret[:4]}...{client_secret[-4:]}"
-        if len(client_secret) > 8
-        else "Invalid or too short"
+        f"{client_secret[:4]}...{client_secret[-4:]}" if len(client_secret) > 8 else "Invalid or too short"
     )
 
     config_vars = {
@@ -160,12 +151,8 @@ def main():
         "USER_GOOGLE_EMAIL": os.getenv("USER_GOOGLE_EMAIL", "Not Set"),
         "MCP_SINGLE_USER_MODE": os.getenv("MCP_SINGLE_USER_MODE", "false"),
         "MCP_ENABLE_OAUTH21": os.getenv("MCP_ENABLE_OAUTH21", "false"),
-        "WORKSPACE_MCP_STATELESS_MODE": os.getenv(
-            "WORKSPACE_MCP_STATELESS_MODE", "false"
-        ),
-        "OAUTHLIB_INSECURE_TRANSPORT": os.getenv(
-            "OAUTHLIB_INSECURE_TRANSPORT", "false"
-        ),
+        "WORKSPACE_MCP_STATELESS_MODE": os.getenv("WORKSPACE_MCP_STATELESS_MODE", "false"),
+        "OAUTHLIB_INSECURE_TRANSPORT": os.getenv("OAUTHLIB_INSECURE_TRANSPORT", "false"),
         "GOOGLE_CLIENT_SECRET_PATH": os.getenv("GOOGLE_CLIENT_SECRET_PATH", "Not Set"),
     }
 
@@ -204,9 +191,7 @@ def main():
     if args.tool_tier is not None:
         # Use tier-based tool selection, optionally filtered by services
         try:
-            tier_tools, suggested_services = resolve_tools_from_tier(
-                args.tool_tier, args.tools
-            )
+            tier_tools, suggested_services = resolve_tools_from_tier(args.tool_tier, args.tools)
 
             # If --tools specified, use those services; otherwise use all services that have tier tools
             if args.tools is not None:
@@ -236,14 +221,10 @@ def main():
 
     set_enabled_tools(list(tools_to_import))
 
-    safe_print(
-        f"🛠️  Loading {len(tools_to_import)} tool module{'s' if len(tools_to_import) != 1 else ''}:"
-    )
+    safe_print(f"🛠️  Loading {len(tools_to_import)} tool module{'s' if len(tools_to_import) != 1 else ''}:")
     for tool in tools_to_import:
         tool_imports[tool]()
-        safe_print(
-            f"   {tool_icons[tool]} {tool.title()} - Google {tool.title()} API integration"
-        )
+        safe_print(f"   {tool_icons[tool]} {tool.title()} - Google {tool.title()} API integration")
     safe_print("")
 
     # Filter tools based on tier configuration (if tier-based loading is enabled)
@@ -253,9 +234,7 @@ def main():
     safe_print(f"   🔧 Services Loaded: {len(tools_to_import)}/{len(tool_imports)}")
     if args.tool_tier is not None:
         if args.tools is not None:
-            safe_print(
-                f"   📊 Tool Tier: {args.tool_tier} (filtered to {', '.join(args.tools)})"
-            )
+            safe_print(f"   📊 Tool Tier: {args.tool_tier} (filtered to {', '.join(args.tools)})")
         else:
             safe_print(f"   📊 Tool Tier: {args.tool_tier}")
     safe_print(f"   📝 Log Level: {logging.getLogger().getEffectiveLevel()}")
@@ -280,9 +259,7 @@ def main():
             safe_print("")
         except (PermissionError, OSError) as e:
             safe_print(f"❌ Credentials directory permission check failed: {e}")
-            safe_print(
-                "   Please ensure the service has write permissions to create/access the credentials directory"
-            )
+            safe_print("   Please ensure the service has write permissions to create/access the credentials directory")
             logger.error(f"Failed credentials directory permission check: {e}")
             sys.exit(1)
     else:
@@ -306,13 +283,9 @@ def main():
             # Start minimal OAuth callback server for stdio mode
             from auth.oauth_callback_server import ensure_oauth_callback_available
 
-            success, error_msg = ensure_oauth_callback_available(
-                "stdio", port, base_uri
-            )
+            success, error_msg = ensure_oauth_callback_available("stdio", port, base_uri)
             if success:
-                safe_print(
-                    f"   OAuth callback server started on {display_url}/oauth2callback"
-                )
+                safe_print(f"   OAuth callback server started on {display_url}/oauth2callback")
             else:
                 warning_msg = "   ⚠️  Warning: Failed to start OAuth callback server"
                 if error_msg:
@@ -329,9 +302,7 @@ def main():
                     s.bind(("", port))
             except OSError as e:
                 safe_print(f"Socket error: {e}")
-                safe_print(
-                    f"❌ Port {port} is already in use. Cannot start HTTP server."
-                )
+                safe_print(f"❌ Port {port} is already in use. Cannot start HTTP server.")
                 sys.exit(1)
 
             server.run(transport="streamable-http", host="0.0.0.0", port=port)

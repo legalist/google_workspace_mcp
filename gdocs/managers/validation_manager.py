@@ -89,9 +89,7 @@ class ValidationManager:
 
         # Check if it's a 2D list
         if not all(isinstance(row, list) for row in table_data):
-            non_list_rows = [
-                i for i, row in enumerate(table_data) if not isinstance(row, list)
-            ]
+            non_list_rows = [i for i, row in enumerate(table_data) if not isinstance(row, list)]
             return (
                 False,
                 f"All rows must be lists. Rows {non_list_rows} are not lists. Required format: [['col1', 'col2'], ['row1col1', 'row1col2']]",
@@ -294,9 +292,7 @@ class ValidationManager:
 
         return True, ""
 
-    def validate_element_insertion_params(
-        self, element_type: str, index: int, **kwargs
-    ) -> Tuple[bool, str]:
+    def validate_element_insertion_params(self, element_type: str, index: int, **kwargs) -> Tuple[bool, str]:
         """
         Validate parameters for element insertion.
 
@@ -361,9 +357,7 @@ class ValidationManager:
 
         return True, ""
 
-    def validate_header_footer_params(
-        self, section_type: str, header_footer_type: str = "DEFAULT"
-    ) -> Tuple[bool, str]:
+    def validate_header_footer_params(self, section_type: str, header_footer_type: str = "DEFAULT") -> Tuple[bool, str]:
         """
         Validate header/footer operation parameters.
 
@@ -390,9 +384,7 @@ class ValidationManager:
 
         return True, ""
 
-    def validate_batch_operations(
-        self, operations: List[Dict[str, Any]]
-    ) -> Tuple[bool, str]:
+    def validate_batch_operations(self, operations: List[Dict[str, Any]]) -> Tuple[bool, str]:
         """
         Validate a list of batch operations.
 
@@ -425,9 +417,7 @@ class ValidationManager:
 
         return True, ""
 
-    def validate_text_content(
-        self, text: str, max_length: Optional[int] = None
-    ) -> Tuple[bool, str]:
+    def validate_text_content(self, text: str, max_length: Optional[int] = None) -> Tuple[bool, str]:
         """
         Validate text content for insertion.
 

@@ -44,9 +44,7 @@ logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
 reload_oauth_config()
 
 # Configure basic logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # Configure file logging based on stateless mode
@@ -65,11 +63,7 @@ def configure_safe_logging():
             except UnicodeEncodeError:
                 # Fallback to ASCII-safe formatting
                 service_prefix = self._get_ascii_prefix(record.name, record.levelname)
-                safe_msg = (
-                    str(record.getMessage())
-                    .encode("ascii", errors="replace")
-                    .decode("ascii")
-                )
+                safe_msg = str(record.getMessage()).encode("ascii", errors="replace").decode("ascii")
                 return f"{service_prefix} {safe_msg}"
 
     # Replace all console handlers' formatters with safe enhanced ones
@@ -94,9 +88,7 @@ if not is_stateless_mode():
         logger.info("Credentials directory permissions verified")
     except (PermissionError, OSError) as e:
         logger.error(f"Credentials directory permission check failed: {e}")
-        logger.error(
-            "   Please ensure the service has write permissions to create/access the credentials directory"
-        )
+        logger.error("   Please ensure the service has write permissions to create/access the credentials directory")
         sys.exit(1)
 else:
     logger.info("🔍 Skipping credentials directory check (stateless mode)")
@@ -141,16 +133,12 @@ filter_server_tools(server)
 
 
 # Add OAuth 2.1 routes for stateless authentication
-@server.custom_route(
-    "/.well-known/oauth-protected-resource", methods=["GET", "OPTIONS"]
-)
+@server.custom_route("/.well-known/oauth-protected-resource", methods=["GET", "OPTIONS"])
 async def oauth_protected_resource(request: Request):
     return await handle_oauth_protected_resource(request)
 
 
-@server.custom_route(
-    "/.well-known/oauth-authorization-server", methods=["GET", "OPTIONS"]
-)
+@server.custom_route("/.well-known/oauth-authorization-server", methods=["GET", "OPTIONS"])
 async def oauth_authorization_server(request: Request):
     return await handle_oauth_authorization_server(request)
 

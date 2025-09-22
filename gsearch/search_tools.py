@@ -67,9 +67,7 @@ async def search_custom(
             "GOOGLE_PSE_ENGINE_ID environment variable not set. Please set it to your Programmable Search Engine ID."
         )
 
-    logger.info(
-        f"[search_custom] Invoked. Email: '{user_google_email}', Query: '{q}', CX: '{cx}'"
-    )
+    logger.info(f"[search_custom] Invoked. Email: '{user_google_email}', Query: '{q}', CX: '{cx}'")
 
     # Build the request parameters
     params = {
@@ -137,9 +135,7 @@ async def search_custom(
                     if "og:type" in metatag:
                         confirmation_message += f"   Type: {metatag['og:type']}\n"
                     if "article:published_time" in metatag:
-                        confirmation_message += (
-                            f"   Published: {metatag['article:published_time'][:10]}\n"
-                        )
+                        confirmation_message += f"   Published: {metatag['article:published_time'][:10]}\n"
     else:
         confirmation_message += "\nNo results found."
 
@@ -147,18 +143,14 @@ async def search_custom(
     queries = result.get("queries", {})
     if "nextPage" in queries:
         next_start = queries["nextPage"][0].get("startIndex", 0)
-        confirmation_message += (
-            f"\n\nTo see more results, search again with start={next_start}"
-        )
+        confirmation_message += f"\n\nTo see more results, search again with start={next_start}"
 
     logger.info(f"Search completed successfully for {user_google_email}")
     return confirmation_message
 
 
 @server.tool()
-@handle_http_errors(
-    "get_search_engine_info", is_read_only=True, service_type="customsearch"
-)
+@handle_http_errors("get_search_engine_info", is_read_only=True, service_type="customsearch")
 @require_google_service("customsearch", "customsearch")
 async def get_search_engine_info(service, user_google_email: str) -> str:
     """
@@ -183,9 +175,7 @@ async def get_search_engine_info(service, user_google_email: str) -> str:
             "GOOGLE_PSE_ENGINE_ID environment variable not set. Please set it to your Programmable Search Engine ID."
         )
 
-    logger.info(
-        f"[get_search_engine_info] Invoked. Email: '{user_google_email}', CX: '{cx}'"
-    )
+    logger.info(f"[get_search_engine_info] Invoked. Email: '{user_google_email}', CX: '{cx}'")
 
     # Perform a minimal search to get the search engine context
     params = {
@@ -227,9 +217,7 @@ async def get_search_engine_info(service, user_google_email: str) -> str:
 
 
 @server.tool()
-@handle_http_errors(
-    "search_custom_siterestrict", is_read_only=True, service_type="customsearch"
-)
+@handle_http_errors("search_custom_siterestrict", is_read_only=True, service_type="customsearch")
 @require_google_service("customsearch", "customsearch")
 async def search_custom_siterestrict(
     service,
@@ -254,9 +242,7 @@ async def search_custom_siterestrict(
     Returns:
         str: Formatted search results from the specified sites.
     """
-    logger.info(
-        f"[search_custom_siterestrict] Invoked. Email: '{user_google_email}', Query: '{q}', Sites: {sites}"
-    )
+    logger.info(f"[search_custom_siterestrict] Invoked. Email: '{user_google_email}', Query: '{q}', Sites: {sites}")
 
     # Build site restriction query
     site_query = " OR ".join([f"site:{site}" for site in sites])

@@ -70,12 +70,8 @@ class GoogleRemoteAuthProvider(RemoteAuthProvider):
         self.port = config.port
 
         if not self.client_id:
-            logger.error(
-                "GOOGLE_OAUTH_CLIENT_ID not set - OAuth 2.1 authentication will not work"
-            )
-            raise ValueError(
-                "GOOGLE_OAUTH_CLIENT_ID environment variable is required for OAuth 2.1 authentication"
-            )
+            logger.error("GOOGLE_OAUTH_CLIENT_ID not set - OAuth 2.1 authentication will not work")
+            raise ValueError("GOOGLE_OAUTH_CLIENT_ID environment variable is required for OAuth 2.1 authentication")
 
         # Configure JWT verifier for Google tokens
         token_verifier = JWTVerifier(
@@ -93,9 +89,7 @@ class GoogleRemoteAuthProvider(RemoteAuthProvider):
             resource_server_url=self.base_url,
         )
 
-        logger.debug(
-            f"Initialized GoogleRemoteAuthProvider with base_url={self.base_url}"
-        )
+        logger.debug(f"Initialized GoogleRemoteAuthProvider with base_url={self.base_url}")
 
     def get_routes(self) -> List[Route]:
         """
@@ -105,11 +99,7 @@ class GoogleRemoteAuthProvider(RemoteAuthProvider):
         parent_routes = super().get_routes()
 
         # Filter out the parent's oauth-protected-resource route since we're replacing it
-        routes = [
-            r
-            for r in parent_routes
-            if r.path != "/.well-known/oauth-protected-resource"
-        ]
+        routes = [r for r in parent_routes if r.path != "/.well-known/oauth-protected-resource"]
 
         # Add our custom OAuth discovery endpoint that returns /mcp/ as the resource
         routes.append(
@@ -137,11 +127,7 @@ class GoogleRemoteAuthProvider(RemoteAuthProvider):
         )
 
         # Add OAuth flow endpoints
-        routes.append(
-            Route(
-                "/oauth2/authorize", handle_oauth_authorize, methods=["GET", "OPTIONS"]
-            )
-        )
+        routes.append(Route("/oauth2/authorize", handle_oauth_authorize, methods=["GET", "OPTIONS"]))
         routes.append(
             Route(
                 "/oauth2/token",
@@ -149,11 +135,7 @@ class GoogleRemoteAuthProvider(RemoteAuthProvider):
                 methods=["POST", "OPTIONS"],
             )
         )
-        routes.append(
-            Route(
-                "/oauth2/register", handle_oauth_register, methods=["POST", "OPTIONS"]
-            )
-        )
+        routes.append(Route("/oauth2/register", handle_oauth_register, methods=["POST", "OPTIONS"]))
 
         logger.info(f"Registered {len(routes)} OAuth routes")
         return routes
@@ -167,21 +149,15 @@ class GoogleRemoteAuthProvider(RemoteAuthProvider):
         """
         # Check if this is a Google OAuth access token (starts with ya29.)
         if token.startswith("ya29."):
-            logger.debug(
-                "Detected Google OAuth access token, using tokeninfo verification"
-            )
+            logger.debug("Detected Google OAuth access token, using tokeninfo verification")
 
             try:
                 # Verify the access token using Google's tokeninfo endpoint
                 async with aiohttp.ClientSession() as session:
-                    url = (
-                        f"https://oauth2.googleapis.com/tokeninfo?access_token={token}"
-                    )
+                    url = f"https://oauth2.googleapis.com/tokeninfo?access_token={token}"
                     async with session.get(url) as response:
                         if response.status != 200:
-                            logger.error(
-                                f"Token verification failed: {response.status}"
-                            )
+                            logger.error(f"Token verification failed: {response.status}")
                             return None
 
                         token_info = await response.json()
@@ -205,9 +181,7 @@ class GoogleRemoteAuthProvider(RemoteAuthProvider):
 
                         # Calculate expires_at timestamp
                         expires_in = int(token_info.get("expires_in", 0))
-                        expires_at = (
-                            int(time.time()) + expires_in if expires_in > 0 else 0
-                        )
+                        expires_at = int(time.time()) + expires_in if expires_in > 0 else 0
 
                         access_token = SimpleNamespace(
                             claims={
@@ -242,9 +216,7 @@ class GoogleRemoteAuthProvider(RemoteAuthProvider):
                                 ctx = get_context()
                                 if ctx and hasattr(ctx, "session_id"):
                                     mcp_session_id = ctx.session_id
-                                    logger.debug(
-                                        f"Binding MCP session {mcp_session_id} to user {user_email}"
-                                    )
+                                    logger.debug(f"Binding MCP session {mcp_session_id} to user {user_email}")
                             except Exception:
                                 pass
 
@@ -289,8 +261,6 @@ class GoogleRemoteAuthProvider(RemoteAuthProvider):
                         issuer="https://accounts.google.com",
                     )
 
-                    logger.debug(
-                        f"Successfully verified JWT token for user: {user_email}"
-                    )
+                    logger.debug(f"Successfully verified JWT token for user: {user_email}")
 
             return access_token

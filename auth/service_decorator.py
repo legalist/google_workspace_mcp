@@ -64,9 +64,7 @@ def _get_auth_context(
         if mcp_session_id:
             set_fastmcp_session_id(mcp_session_id)
 
-        logger.debug(
-            f"[{tool_name}] Auth from middleware: {authenticated_user} via {auth_method}"
-        )
+        logger.debug(f"[{tool_name}] Auth from middleware: {authenticated_user} via {auth_method}")
         return authenticated_user, auth_method, mcp_session_id
 
     except Exception as e:
@@ -74,9 +72,7 @@ def _get_auth_context(
         return None, None, None
 
 
-def _detect_oauth_version(
-    authenticated_user: Optional[str], mcp_session_id: Optional[str], tool_name: str
-) -> bool:
+def _detect_oauth_version(authenticated_user: Optional[str], mcp_session_id: Optional[str], tool_name: str) -> bool:
     """
     Detect whether to use OAuth 2.1 based on configuration and context.
 
@@ -88,9 +84,7 @@ def _detect_oauth_version(
 
     # When OAuth 2.1 is enabled globally, ALWAYS use OAuth 2.1 for authenticated users
     if authenticated_user:
-        logger.info(
-            f"[{tool_name}] OAuth 2.1 mode: Using OAuth 2.1 for authenticated user '{authenticated_user}'"
-        )
+        logger.info(f"[{tool_name}] OAuth 2.1 mode: Using OAuth 2.1 for authenticated user '{authenticated_user}'")
         return True
 
     # Only use version detection for unauthenticated requests
@@ -101,9 +95,7 @@ def _detect_oauth_version(
 
     oauth_version = config.detect_oauth_version(request_params)
     use_oauth21 = oauth_version == "oauth21"
-    logger.info(
-        f"[{tool_name}] OAuth version detected: {oauth_version}, will use OAuth 2.1: {use_oauth21}"
-    )
+    logger.info(f"[{tool_name}] OAuth version detected: {oauth_version}, will use OAuth 2.1: {use_oauth21}")
     return use_oauth21
 
 
@@ -132,9 +124,7 @@ def _override_oauth21_user_email(
     Returns:
         Tuple of (updated_user_email, updated_args)
     """
-    if not (
-        use_oauth21 and authenticated_user and current_user_email != authenticated_user
-    ):
+    if not (use_oauth21 and authenticated_user and current_user_email != authenticated_user):
         return current_user_email, args
 
     service_suffix = f" for service '{service_type}'" if service_type else ""
@@ -238,9 +228,7 @@ async def get_authenticated_google_service_oauth21(
     return service, user_google_email
 
 
-def _extract_oauth21_user_email(
-    authenticated_user: Optional[str], func_name: str
-) -> str:
+def _extract_oauth21_user_email(authenticated_user: Optional[str], func_name: str) -> str:
     """
     Extract user email for OAuth 2.1 mode.
 
@@ -255,15 +243,11 @@ def _extract_oauth21_user_email(
         Exception: If no authenticated user found in OAuth 2.1 mode
     """
     if not authenticated_user:
-        raise Exception(
-            f"OAuth 2.1 mode requires an authenticated user for {func_name}, but none was found."
-        )
+        raise Exception(f"OAuth 2.1 mode requires an authenticated user for {func_name}, but none was found.")
     return authenticated_user
 
 
-def _extract_oauth20_user_email(
-    args: tuple, kwargs: dict, wrapper_sig: inspect.Signature
-) -> str:
+def _extract_oauth20_user_email(args: tuple, kwargs: dict, wrapper_sig: inspect.Signature) -> str:
     """
     Extract user email for OAuth 2.0 mode from function arguments.
 
@@ -391,9 +375,7 @@ def _resolve_scopes(scopes: Union[str, List[str]]) -> List[str]:
     return resolved
 
 
-def _handle_token_refresh_error(
-    error: RefreshError, user_email: str, service_name: str
-) -> str:
+def _handle_token_refresh_error(error: RefreshError, user_email: str, service_name: str) -> str:
     """
     Handle token refresh errors gracefully, particularly expired/revoked tokens.
 
@@ -407,13 +389,8 @@ def _handle_token_refresh_error(
     """
     error_str = str(error)
 
-    if (
-        "invalid_grant" in error_str.lower()
-        or "expired or revoked" in error_str.lower()
-    ):
-        logger.warning(
-            f"Token expired or revoked for user {user_email} accessing {service_name}"
-        )
+    if "invalid_grant" in error_str.lower() or "expired or revoked" in error_str.lower():
+        logger.warning(f"Token expired or revoked for user {user_email} accessing {service_name}")
 
         service_display_name = f"Google {service_name.title()}"
 
@@ -487,19 +464,13 @@ def require_google_service(
             # which does not include 'service'.
 
             # Get authentication context early to determine OAuth mode
-            authenticated_user, auth_method, mcp_session_id = _get_auth_context(
-                func.__name__
-            )
+            authenticated_user, auth_method, mcp_session_id = _get_auth_context(func.__name__)
 
             # Extract user_google_email based on OAuth mode
             if is_oauth21_enabled():
-                user_google_email = _extract_oauth21_user_email(
-                    authenticated_user, func.__name__
-                )
+                user_google_email = _extract_oauth21_user_email(authenticated_user, func.__name__)
             else:
-                user_google_email = _extract_oauth20_user_email(
-                    args, kwargs, wrapper_sig
-                )
+                user_google_email = _extract_oauth20_user_email(args, kwargs, wrapper_sig)
 
             # Get service configuration from the decorator's arguments
             if service_type not in SERVICE_CONFIGS:
@@ -521,9 +492,7 @@ def require_google_service(
                 )
 
                 # Detect OAuth version
-                use_oauth21 = _detect_oauth_version(
-                    authenticated_user, mcp_session_id, tool_name
-                )
+                use_oauth21 = _detect_oauth_version(authenticated_user, mcp_session_id, tool_name)
 
                 # In OAuth 2.1 mode, user_google_email is already set to authenticated_user
                 # In OAuth 2.0 mode, we may need to override it
@@ -567,9 +536,7 @@ def require_google_service(
                 # Prepend the fetched service object to the original arguments
                 return await func(service, *args, **kwargs)
             except RefreshError as e:
-                error_message = _handle_token_refresh_error(
-                    e, actual_user_email, service_name
-                )
+                error_message = _handle_token_refresh_error(e, actual_user_email, service_name)
                 raise Exception(error_message)
 
         # Set the wrapper's signature to the one without 'service'
@@ -577,9 +544,7 @@ def require_google_service(
 
         # Conditionally modify docstring to remove user_google_email parameter documentation
         if is_oauth21_enabled():
-            logger.debug(
-                "OAuth 2.1 mode enabled, removing user_google_email from docstring"
-            )
+            logger.debug("OAuth 2.1 mode enabled, removing user_google_email from docstring")
             if func.__doc__:
                 wrapper.__doc__ = _remove_user_email_arg_from_docstring(func.__doc__)
 
@@ -627,9 +592,7 @@ def require_multiple_services(service_configs: List[Dict[str, Any]]):
 
             # Extract user_google_email based on OAuth mode
             if is_oauth21_enabled():
-                user_google_email = _extract_oauth21_user_email(
-                    authenticated_user, tool_name
-                )
+                user_google_email = _extract_oauth21_user_email(authenticated_user, tool_name)
             else:
                 # OAuth 2.0 mode: extract from arguments (original logic)
                 param_names = list(original_sig.parameters.keys())
@@ -645,9 +608,7 @@ def require_multiple_services(service_configs: List[Dict[str, Any]]):
                         pass
 
                 if not user_google_email:
-                    raise Exception(
-                        "user_google_email parameter is required but not found"
-                    )
+                    raise Exception("user_google_email parameter is required but not found")
 
             # Authenticate all services
             for config in service_configs:
@@ -666,9 +627,7 @@ def require_multiple_services(service_configs: List[Dict[str, Any]]):
 
                 try:
                     # Detect OAuth version (simplified for multiple services)
-                    use_oauth21 = (
-                        is_oauth21_enabled() and authenticated_user is not None
-                    )
+                    use_oauth21 = is_oauth21_enabled() and authenticated_user is not None
 
                     # In OAuth 2.0 mode, we may need to override user_google_email
                     if not is_oauth21_enabled():
@@ -715,9 +674,7 @@ def require_multiple_services(service_configs: List[Dict[str, Any]]):
                 return await func(*args, **kwargs)
             except RefreshError as e:
                 # Handle token refresh errors gracefully
-                error_message = _handle_token_refresh_error(
-                    e, user_google_email, "Multiple Services"
-                )
+                error_message = _handle_token_refresh_error(e, user_google_email, "Multiple Services")
                 raise Exception(error_message)
 
         # Set the wrapper's signature
@@ -725,9 +682,7 @@ def require_multiple_services(service_configs: List[Dict[str, Any]]):
 
         # Conditionally modify docstring to remove user_google_email parameter documentation
         if is_oauth21_enabled():
-            logger.debug(
-                "OAuth 2.1 mode enabled, removing user_google_email from docstring"
-            )
+            logger.debug("OAuth 2.1 mode enabled, removing user_google_email from docstring")
             if func.__doc__:
                 wrapper.__doc__ = _remove_user_email_arg_from_docstring(func.__doc__)
 

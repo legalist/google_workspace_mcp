@@ -42,9 +42,7 @@ class OAuthConfigurationError(OAuthError):
         super().__init__("server_error", description, 500)
 
 
-def create_oauth_error_response(
-    error: OAuthError, origin: Optional[str] = None
-) -> JSONResponse:
+def create_oauth_error_response(error: OAuthError, origin: Optional[str] = None) -> JSONResponse:
     """
     Create a standardized OAuth error response.
 
@@ -92,9 +90,7 @@ def validate_redirect_uri(uri: str) -> None:
 
     # Security checks
     if parsed.scheme not in ["http", "https"]:
-        raise OAuthValidationError(
-            "Redirect URI must use HTTP or HTTPS", "redirect_uri"
-        )
+        raise OAuthValidationError("Redirect URI must use HTTP or HTTPS", "redirect_uri")
 
     # Additional security for production
     if parsed.scheme == "http" and parsed.hostname not in ["localhost", "127.0.0.1"]:
@@ -140,9 +136,7 @@ def validate_authorization_code(code: str) -> None:
 
     # Check for suspicious patterns
     if any(char in code for char in [" ", "\n", "\t", "<", ">"]):
-        raise OAuthValidationError(
-            "Authorization code contains invalid characters", "code"
-        )
+        raise OAuthValidationError("Authorization code contains invalid characters", "code")
 
 
 def validate_scopes(scopes: List[str]) -> None:
@@ -185,9 +179,7 @@ def validate_token_request(request_data: Dict[str, Any]) -> None:
         raise OAuthValidationError("Grant type is required", "grant_type")
 
     if grant_type not in ["authorization_code", "refresh_token"]:
-        raise OAuthValidationError(
-            f"Unsupported grant type: {grant_type}", "grant_type"
-        )
+        raise OAuthValidationError(f"Unsupported grant type: {grant_type}", "grant_type")
 
     if grant_type == "authorization_code":
         code = request_data.get("code")
@@ -216,9 +208,7 @@ def validate_registration_request(request_data: Dict[str, Any]) -> None:
     redirect_uris = request_data.get("redirect_uris", [])
     if redirect_uris:
         if not isinstance(redirect_uris, list):
-            raise OAuthValidationError(
-                "redirect_uris must be an array", "redirect_uris"
-            )
+            raise OAuthValidationError("redirect_uris must be an array", "redirect_uris")
 
         for uri in redirect_uris:
             validate_redirect_uri(uri)
@@ -232,24 +222,18 @@ def validate_registration_request(request_data: Dict[str, Any]) -> None:
         allowed_grant_types = ["authorization_code", "refresh_token"]
         for grant_type in grant_types:
             if grant_type not in allowed_grant_types:
-                raise OAuthValidationError(
-                    f"Unsupported grant type: {grant_type}", "grant_types"
-                )
+                raise OAuthValidationError(f"Unsupported grant type: {grant_type}", "grant_types")
 
     # Validate response types if provided
     response_types = request_data.get("response_types", [])
     if response_types:
         if not isinstance(response_types, list):
-            raise OAuthValidationError(
-                "response_types must be an array", "response_types"
-            )
+            raise OAuthValidationError("response_types must be an array", "response_types")
 
         allowed_response_types = ["code"]
         for response_type in response_types:
             if response_type not in allowed_response_types:
-                raise OAuthValidationError(
-                    f"Unsupported response type: {response_type}", "response_types"
-                )
+                raise OAuthValidationError(f"Unsupported response type: {response_type}", "response_types")
 
 
 def sanitize_user_input(value: str, max_length: int = 1000) -> str:
@@ -278,9 +262,7 @@ def sanitize_user_input(value: str, max_length: int = 1000) -> str:
     return sanitized.strip()
 
 
-def log_security_event(
-    event_type: str, details: Dict[str, Any], request: Optional[Request] = None
-) -> None:
+def log_security_event(event_type: str, details: Dict[str, Any], request: Optional[Request] = None) -> None:
     """
     Log security-related events for monitoring.
 
@@ -315,9 +297,7 @@ def get_development_cors_headers(origin: Optional[str] = None) -> Dict[str, str]
         CORS headers for localhost origins only, empty dict otherwise
     """
     # Only allow localhost origins for development
-    if origin and (
-        origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:")
-    ):
+    if origin and (origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:")):
         return {
             "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Methods": "GET, POST, OPTIONS",

@@ -71,9 +71,7 @@ def create_insert_text_request(index: int, text: str) -> Dict[str, Any]:
     return {"insertText": {"location": {"index": index}, "text": text}}
 
 
-def create_insert_text_segment_request(
-    index: int, text: str, segment_id: str
-) -> Dict[str, Any]:
+def create_insert_text_segment_request(index: int, text: str, segment_id: str) -> Dict[str, Any]:
     """
     Create an insertText request for Google Docs API with segmentId (for headers/footers).
 
@@ -104,11 +102,7 @@ def create_delete_range_request(start_index: int, end_index: int) -> Dict[str, A
     Returns:
         Dictionary representing the deleteContentRange request
     """
-    return {
-        "deleteContentRange": {
-            "range": {"startIndex": start_index, "endIndex": end_index}
-        }
-    }
+    return {"deleteContentRange": {"range": {"startIndex": start_index, "endIndex": end_index}}}
 
 
 def create_format_text_request(
@@ -135,9 +129,7 @@ def create_format_text_request(
     Returns:
         Dictionary representing the updateTextStyle request, or None if no styles provided
     """
-    text_style, fields = build_text_style(
-        bold, italic, underline, font_size, font_family
-    )
+    text_style, fields = build_text_style(bold, italic, underline, font_size, font_family)
 
     if not text_style:
         return None
@@ -151,9 +143,7 @@ def create_format_text_request(
     }
 
 
-def create_find_replace_request(
-    find_text: str, replace_text: str, match_case: bool = False
-) -> Dict[str, Any]:
+def create_find_replace_request(find_text: str, replace_text: str, match_case: bool = False) -> Dict[str, Any]:
     """
     Create a replaceAllText request for Google Docs API.
 
@@ -185,9 +175,7 @@ def create_insert_table_request(index: int, rows: int, columns: int) -> Dict[str
     Returns:
         Dictionary representing the insertTable request
     """
-    return {
-        "insertTable": {"location": {"index": index}, "rows": rows, "columns": columns}
-    }
+    return {"insertTable": {"location": {"index": index}, "rows": rows, "columns": columns}}
 
 
 def create_insert_page_break_request(index: int) -> Dict[str, Any]:
@@ -203,9 +191,7 @@ def create_insert_page_break_request(index: int) -> Dict[str, Any]:
     return {"insertPageBreak": {"location": {"index": index}}}
 
 
-def create_insert_image_request(
-    index: int, image_uri: str, width: int = None, height: int = None
-) -> Dict[str, Any]:
+def create_insert_image_request(index: int, image_uri: str, width: int = None, height: int = None) -> Dict[str, Any]:
     """
     Create an insertInlineImage request for Google Docs API.
 
@@ -233,9 +219,7 @@ def create_insert_image_request(
     return request
 
 
-def create_bullet_list_request(
-    start_index: int, end_index: int, list_type: str = "UNORDERED"
-) -> Dict[str, Any]:
+def create_bullet_list_request(start_index: int, end_index: int, list_type: str = "UNORDERED") -> Dict[str, Any]:
     """
     Create a createParagraphBullets request for Google Docs API.
 
@@ -247,11 +231,7 @@ def create_bullet_list_request(
     Returns:
         Dictionary representing the createParagraphBullets request
     """
-    bullet_preset = (
-        "BULLET_DISC_CIRCLE_SQUARE"
-        if list_type == "UNORDERED"
-        else "NUMBERED_DECIMAL_ALPHA_ROMAN"
-    )
+    bullet_preset = "BULLET_DISC_CIRCLE_SQUARE" if list_type == "UNORDERED" else "NUMBERED_DECIMAL_ALPHA_ROMAN"
 
     return {
         "createParagraphBullets": {

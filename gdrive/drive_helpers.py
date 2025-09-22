@@ -18,10 +18,7 @@ def check_public_link_permission(permissions: List[Dict[str, Any]]) -> bool:
     Returns:
         bool: True if file has public link sharing enabled
     """
-    return any(
-        p.get("type") == "anyone" and p.get("role") in ["reader", "writer", "commenter"]
-        for p in permissions
-    )
+    return any(p.get("type") == "anyone" and p.get("role") in ["reader", "writer", "commenter"] for p in permissions)
 
 
 def format_public_sharing_error(file_name: str, file_id: str) -> str:
@@ -64,9 +61,7 @@ DRIVE_QUERY_PATTERNS = [
     re.compile(r"\bhas\s*\{", re.IGNORECASE),  # has {properties}
     re.compile(r"\btrashed\s*=\s*(true|false)\b", re.IGNORECASE),  # trashed=true/false
     re.compile(r"\bstarred\s*=\s*(true|false)\b", re.IGNORECASE),  # starred=true/false
-    re.compile(
-        r'[\'"][^\'"]+[\'"]\s+in\s+parents', re.IGNORECASE
-    ),  # 'parentId' in parents
+    re.compile(r'[\'"][^\'"]+[\'"]\s+in\s+parents', re.IGNORECASE),  # 'parentId' in parents
     re.compile(r"\bfullText\s+contains\b", re.IGNORECASE),  # fullText contains
     re.compile(r"\bname\s*(=|contains)\b", re.IGNORECASE),  # name = or name contains
     re.compile(r"\bmimeType\s*(=|!=)\b", re.IGNORECASE),  # mimeType operators

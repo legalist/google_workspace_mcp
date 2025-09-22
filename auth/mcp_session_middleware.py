@@ -30,9 +30,7 @@ class MCPSessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable) -> Any:
         """Process request and set session context."""
 
-        logger.debug(
-            f"MCPSessionMiddleware processing request: {request.method} {request.url.path}"
-        )
+        logger.debug(f"MCPSessionMiddleware processing request: {request.method} {request.url.path}")
 
         # Skip non-MCP paths
         if not request.url.path.startswith("/mcp"):
@@ -65,11 +63,7 @@ class MCPSessionMiddleware(BaseHTTPMiddleware):
 
             # Also check Authorization header for bearer tokens
             auth_header = headers.get("authorization")
-            if (
-                auth_header
-                and auth_header.lower().startswith("bearer ")
-                and not user_email
-            ):
+            if auth_header and auth_header.lower().startswith("bearer ") and not user_email:
                 try:
                     import jwt
 
@@ -93,8 +87,7 @@ class MCPSessionMiddleware(BaseHTTPMiddleware):
 
                 session_context = SessionContext(
                     session_id=effective_session_id,
-                    user_id=user_email
-                    or (auth_context.user_id if auth_context else None),
+                    user_id=user_email or (auth_context.user_id if auth_context else None),
                     auth_context=auth_context,
                     request=request,
                     metadata={

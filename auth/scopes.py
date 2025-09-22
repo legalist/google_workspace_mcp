@@ -48,9 +48,7 @@ SHEETS_WRITE_SCOPE = "https://www.googleapis.com/auth/spreadsheets"
 # Google Forms API scopes
 FORMS_BODY_SCOPE = "https://www.googleapis.com/auth/forms.body"
 FORMS_BODY_READONLY_SCOPE = "https://www.googleapis.com/auth/forms.body.readonly"
-FORMS_RESPONSES_READONLY_SCOPE = (
-    "https://www.googleapis.com/auth/forms.responses.readonly"
-)
+FORMS_RESPONSES_READONLY_SCOPE = "https://www.googleapis.com/auth/forms.responses.readonly"
 
 # Google Slides API scopes
 SLIDES_SCOPE = "https://www.googleapis.com/auth/presentations"
@@ -145,9 +143,7 @@ def get_current_scopes():
         if tool in TOOL_SCOPES_MAP:
             scopes.extend(TOOL_SCOPES_MAP[tool])
 
-    logger.debug(
-        f"Generated scopes for tools {list(enabled_tools)}: {len(set(scopes))} unique scopes"
-    )
+    logger.debug(f"Generated scopes for tools {list(enabled_tools)}: {len(set(scopes))} unique scopes")
     # Return unique scopes
     return list(set(scopes))
 

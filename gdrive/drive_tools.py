@@ -20,7 +20,6 @@ from gdrive.drive_helpers import DRIVE_QUERY_PATTERNS, build_drive_list_params
 logger = logging.getLogger(__name__)
 
 
-
 @server.tool()
 @handle_http_errors("search_drive_files", is_read_only=True, service_type="drive")
 @require_google_service("drive", "drive_read")
@@ -49,9 +48,7 @@ async def search_drive_files(
     Returns:
         str: A formatted list of found files/folders with their details (ID, name, type, size, modified time, link).
     """
-    logger.info(
-        f"[search_drive_files] Invoked. Email: '{user_google_email}', Query: '{query}'"
-    )
+    logger.info(f"[search_drive_files] Invoked. Email: '{user_google_email}', Query: '{query}'")
 
     # Check if the query looks like a structured Drive query or free text
     # Look for Drive API operators and structured query patterns
@@ -59,16 +56,12 @@ async def search_drive_files(
 
     if is_structured_query:
         final_query = query
-        logger.info(
-            f"[search_drive_files] Using structured query as-is: '{final_query}'"
-        )
+        logger.info(f"[search_drive_files] Using structured query as-is: '{final_query}'")
     else:
         # For free text queries, wrap in fullText contains
         escaped_query = query.replace("'", "\\'")
         final_query = f"fullText contains '{escaped_query}'"
-        logger.info(
-            f"[search_drive_files] Reformatting free text query '{query}' to '{final_query}'"
-        )
+        logger.info(f"[search_drive_files] Reformatting free text query '{query}' to '{final_query}'")
 
     list_params = build_drive_list_params(
         query=final_query,
@@ -83,9 +76,7 @@ async def search_drive_files(
     if not files:
         return f"No files found for '{query}'."
 
-    formatted_files_text_parts = [
-        f"Found {len(files)} files for {user_google_email} matching '{query}':"
-    ]
+    formatted_files_text_parts = [f"Found {len(files)} files for {user_google_email} matching '{query}':"]
     for item in files:
         size_str = f", Size: {item.get('size', 'N/A')}" if "size" in item else ""
         formatted_files_text_parts.append(
@@ -216,9 +207,7 @@ async def list_drive_items(
     Returns:
         str: A formatted list of files/folders in the specified folder.
     """
-    logger.info(
-        f"[list_drive_items] Invoked. Email: '{user_google_email}', Folder ID: '{folder_id}'"
-    )
+    logger.info(f"[list_drive_items] Invoked. Email: '{user_google_email}', Folder ID: '{folder_id}'")
 
     final_query = f"'{folder_id}' in parents and trashed=false"
 
@@ -235,9 +224,7 @@ async def list_drive_items(
     if not files:
         return f"No items found in folder '{folder_id}'."
 
-    formatted_items_text_parts = [
-        f"Found {len(files)} items in folder '{folder_id}' for {user_google_email}:"
-    ]
+    formatted_items_text_parts = [f"Found {len(files)} items in folder '{folder_id}' for {user_google_email}:"]
     for item in files:
         size_str = f", Size: {item.get('size', 'N/A')}" if "size" in item else ""
         formatted_items_text_parts.append(
@@ -288,17 +275,13 @@ async def create_drive_file(
         async with httpx.AsyncClient() as client:
             resp = await client.get(fileUrl)
             if resp.status_code != 200:
-                raise Exception(
-                    f"Failed to fetch file from URL: {fileUrl} (status {resp.status_code})"
-                )
+                raise Exception(f"Failed to fetch file from URL: {fileUrl} (status {resp.status_code})")
             file_data = await resp.aread()
             # Try to get MIME type from Content-Type header
             content_type = resp.headers.get("Content-Type")
             if content_type and content_type != "application/octet-stream":
                 mime_type = content_type
-                logger.info(
-                    f"[create_drive_file] Using MIME type from Content-Type header: {mime_type}"
-                )
+                logger.info(f"[create_drive_file] Using MIME type from Content-Type header: {mime_type}")
     elif content:
         file_data = content.encode("utf-8")
 
@@ -323,9 +306,7 @@ async def create_drive_file(
 
 
 @server.tool()
-@handle_http_errors(
-    "get_drive_file_permissions", is_read_only=True, service_type="drive"
-)
+@handle_http_errors("get_drive_file_permissions", is_read_only=True, service_type="drive")
 @require_google_service("drive", "drive_read")
 async def get_drive_file_permissions(
     service,
@@ -342,9 +323,7 @@ async def get_drive_file_permissions(
     Returns:
         str: Detailed file metadata including sharing status and URLs.
     """
-    logger.info(
-        f"[get_drive_file_permissions] Checking file {file_id} for {user_google_email}"
-    )
+    logger.info(f"[get_drive_file_permissions] Checking file {file_id} for {user_google_email}")
 
     try:
         # Get comprehensive file metadata including permissions
@@ -446,9 +425,7 @@ async def get_drive_file_permissions(
 
 
 @server.tool()
-@handle_http_errors(
-    "check_drive_file_public_access", is_read_only=True, service_type="drive"
-)
+@handle_http_errors("check_drive_file_public_access", is_read_only=True, service_type="drive")
 @require_google_service("drive", "drive_read")
 async def check_drive_file_public_access(
     service,

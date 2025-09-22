@@ -57,9 +57,7 @@ class OAuthVersionDetectionParams:
     session_id: Optional[str] = None
 
     @classmethod
-    def from_request(
-        cls, request_params: Dict[str, Any]
-    ) -> "OAuthVersionDetectionParams":
+    def from_request(cls, request_params: Dict[str, Any]) -> "OAuthVersionDetectionParams":
         """Create from raw request parameters."""
         return cls(
             client_id=request_params.get("client_id"),
