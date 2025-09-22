@@ -166,8 +166,6 @@ async def get_form_response(service, user_google_email: str, form_id: str, respo
 
     response = await asyncio.to_thread(service.forms().responses().get(formId=form_id, responseId=response_id).execute)
 
-    response = await asyncio.to_thread(service.forms().responses().get(formId=form_id, responseId=response_id).execute)
-
     response_id = response.get("responseId", "Unknown")
     create_time = response.get("createTime", "Unknown")
     last_submitted_time = response.get("lastSubmittedTime", "Unknown")

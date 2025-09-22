@@ -257,8 +257,8 @@ async def get_events(
         if query:
             request_params["q"] = query
 
-    events_result = await asyncio.to_thread(lambda: service.events().list(**request_params).execute())
-    items = events_result.get("items", [])
+        events_result = await asyncio.to_thread(lambda: service.events().list(**request_params).execute())
+        items = events_result.get("items", [])
     if not items:
         if event_id:
             return f"Event with ID '{event_id}' not found in calendar '{calendar_id}' for {user_google_email}."

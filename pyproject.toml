@@ -72,4 +72,3 @@ py-modules = [ "main"]
 
 [tool.setuptools.package-data]
 core = ["tool_tiers.yaml"]
-
