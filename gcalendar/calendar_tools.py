@@ -25,20 +25,22 @@ from core.server import server
 logger = logging.getLogger(__name__)
 
 
-def _parse_reminders_json(reminders_input: Optional[Union[str, List[Dict[str, Any]]]], function_name: str) -> List[Dict[str, Any]]:
+def _parse_reminders_json(
+    reminders_input: Optional[Union[str, List[Dict[str, Any]]]], function_name: str
+) -> List[Dict[str, Any]]:
     """
     Parse reminders from JSON string or list object and validate them.
-    
+
     Args:
         reminders_input: JSON string containing reminder objects or list of reminder objects
         function_name: Name of calling function for logging
-        
+
     Returns:
         List of validated reminder objects
     """
     if not reminders_input:
         return []
-    
+
     # Handle both string (JSON) and list inputs
     if isinstance(reminders_input, str):
         try:
@@ -52,39 +54,44 @@ def _parse_reminders_json(reminders_input: Optional[Union[str, List[Dict[str, An
     elif isinstance(reminders_input, list):
         reminders = reminders_input
     else:
-        logger.warning(f"[{function_name}] Reminders must be a JSON string or list, got {type(reminders_input).__name__}")
+        logger.warning(
+            f"[{function_name}] Reminders must be a JSON string or list, got {type(reminders_input).__name__}"
+        )
         return []
-    
+
     # Validate reminders
     if len(reminders) > 5:
         logger.warning(f"[{function_name}] More than 5 reminders provided, truncating to first 5")
         reminders = reminders[:5]
-    
+
     validated_reminders = []
     for reminder in reminders:
         if not isinstance(reminder, dict) or "method" not in reminder or "minutes" not in reminder:
             logger.warning(f"[{function_name}] Invalid reminder format: {reminder}, skipping")
             continue
-        
+
         method = reminder["method"].lower()
         if method not in ["popup", "email"]:
-            logger.warning(f"[{function_name}] Invalid reminder method '{method}', must be 'popup' or 'email', skipping")
+            logger.warning(
+                f"[{function_name}] Invalid reminder method '{method}', must be 'popup' or 'email', skipping"
+            )
             continue
-        
+
         minutes = reminder["minutes"]
         if not isinstance(minutes, int) or minutes < 0 or minutes > 40320:
             logger.warning(f"[{function_name}] Invalid reminder minutes '{minutes}', must be integer 0-40320, skipping")
             continue
-        
-        validated_reminders.append({
-            "method": method,
-            "minutes": minutes
-        })
-    
+
+        validated_reminders.append({"method": method, "minutes": minutes})
+
     return validated_reminders
 
 
-def _preserve_existing_fields(event_body: Dict[str, Any], existing_event: Dict[str, Any], field_mappings: Dict[str, Any]) -> None:
+def _preserve_existing_fields(
+    event_body: Dict[str, Any],
+    existing_event: Dict[str, Any],
+    field_mappings: Dict[str, Any],
+) -> None:
     """
     Helper function to preserve existing event fields when not explicitly provided.
 
@@ -102,15 +109,11 @@ def _preserve_existing_fields(event_body: Dict[str, Any], existing_event: Dict[s
 
 
 # Helper function to ensure time strings for API calls are correctly formatted
-def _correct_time_format_for_api(
-    time_str: Optional[str], param_name: str
-) -> Optional[str]:
+def _correct_time_format_for_api(time_str: Optional[str], param_name: str) -> Optional[str]:
     if not time_str:
         return None
 
-    logger.info(
-        f"_correct_time_format_for_api: Processing {param_name} with value '{time_str}'"
-    )
+    logger.info(f"_correct_time_format_for_api: Processing {param_name} with value '{time_str}'")
 
     # Handle date-only format (YYYY-MM-DD)
     if len(time_str) == 10 and time_str.count("-") == 2:
@@ -119,14 +122,10 @@ def _correct_time_format_for_api(
             datetime.datetime.strptime(time_str, "%Y-%m-%d")
             # For date-only, append T00:00:00Z to make it RFC3339 compliant
             formatted = f"{time_str}T00:00:00Z"
-            logger.info(
-                f"Formatting date-only {param_name} '{time_str}' to RFC3339: '{formatted}'"
-            )
+            logger.info(f"Formatting date-only {param_name} '{time_str}' to RFC3339: '{formatted}'")
             return formatted
         except ValueError:
-            logger.warning(
-                f"{param_name} '{time_str}' looks like a date but is not valid YYYY-MM-DD. Using as is."
-            )
+            logger.warning(f"{param_name} '{time_str}' looks like a date but is not valid YYYY-MM-DD. Using as is.")
             return time_str
 
     # Specifically address YYYY-MM-DDTHH:MM:SS by appending 'Z'
@@ -134,16 +133,12 @@ def _correct_time_format_for_api(
         len(time_str) == 19
         and time_str[10] == "T"
         and time_str.count(":") == 2
-        and not (
-            time_str.endswith("Z") or ("+" in time_str[10:]) or ("-" in time_str[10:])
-        )
+        and not (time_str.endswith("Z") or ("+" in time_str[10:]) or ("-" in time_str[10:]))
     ):
         try:
             # Validate the format before appending 'Z'
             datetime.datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S")
-            logger.info(
-                f"Formatting {param_name} '{time_str}' by appending 'Z' for UTC."
-            )
+            logger.info(f"Formatting {param_name} '{time_str}' by appending 'Z' for UTC.")
             return time_str + "Z"
         except ValueError:
             logger.warning(
@@ -171,20 +166,17 @@ async def list_calendars(service, user_google_email: str) -> str:
     """
     logger.info(f"[list_calendars] Invoked. Email: '{user_google_email}'")
 
-    calendar_list_response = await asyncio.to_thread(
-        lambda: service.calendarList().list().execute()
-    )
+    calendar_list_response = await asyncio.to_thread(lambda: service.calendarList().list().execute())
     items = calendar_list_response.get("items", [])
     if not items:
         return f"No calendars found for {user_google_email}."
 
     calendars_summary_list = [
-        f"- \"{cal.get('summary', 'No Summary')}\"{' (Primary)' if cal.get('primary') else ''} (ID: {cal['id']})"
+        f'- "{cal.get("summary", "No Summary")}"{" (Primary)" if cal.get("primary") else ""} (ID: {cal["id"]})'
         for cal in items
     ]
-    text_output = (
-        f"Successfully listed {len(items)} calendars for {user_google_email}:\n"
-        + "\n".join(calendars_summary_list)
+    text_output = f"Successfully listed {len(items)} calendars for {user_google_email}:\n" + "\n".join(
+        calendars_summary_list
     )
     logger.info(f"Successfully listed {len(items)} calendars for {user_google_email}.")
     return text_output
@@ -236,13 +228,9 @@ async def get_events(
         # Handle multiple events retrieval with time filtering
         # Ensure time_min and time_max are correctly formatted for the API
         formatted_time_min = _correct_time_format_for_api(time_min, "time_min")
-        effective_time_min = formatted_time_min or (
-            datetime.datetime.utcnow().isoformat() + "Z"
-        )
+        effective_time_min = formatted_time_min or (datetime.datetime.utcnow().isoformat() + "Z")
         if time_min is None:
-            logger.info(
-                f"time_min not provided, defaulting to current UTC time: {effective_time_min}"
-            )
+            logger.info(f"time_min not provided, defaulting to current UTC time: {effective_time_min}")
         else:
             logger.info(
                 f"time_min processing: original='{time_min}', formatted='{formatted_time_min}', effective='{effective_time_min}'"
@@ -250,9 +238,7 @@ async def get_events(
 
         effective_time_max = _correct_time_format_for_api(time_max, "time_max")
         if time_max:
-            logger.info(
-                f"time_max processing: original='{time_max}', formatted='{effective_time_max}'"
-            )
+            logger.info(f"time_max processing: original='{time_max}', formatted='{effective_time_max}'")
 
         logger.info(
             f"[get_events] Final API parameters - calendarId: '{calendar_id}', timeMin: '{effective_time_min}', timeMax: '{effective_time_max}', maxResults: {max_results}, query: '{query}'"
@@ -271,11 +257,7 @@ async def get_events(
         if query:
             request_params["q"] = query
 
-        events_result = await asyncio.to_thread(
-            lambda: service.events()
-            .list(**request_params)
-            .execute()
-        )
+        events_result = await asyncio.to_thread(lambda: service.events().list(**request_params).execute())
         items = events_result.get("items", [])
     if not items:
         if event_id:
@@ -295,15 +277,15 @@ async def get_events(
         attendees = item.get("attendees", [])
         attendee_emails = ", ".join([a.get("email", "") for a in attendees]) if attendees else "None"
         event_details = (
-            f'Event Details:\n'
-            f'- Title: {summary}\n'
-            f'- Starts: {start}\n'
-            f'- Ends: {end}\n'
-            f'- Description: {description}\n'
-            f'- Location: {location}\n'
-            f'- Attendees: {attendee_emails}\n'
-            f'- Event ID: {event_id}\n'
-            f'- Link: {link}'
+            f"Event Details:\n"
+            f"- Title: {summary}\n"
+            f"- Starts: {start}\n"
+            f"- Ends: {end}\n"
+            f"- Description: {description}\n"
+            f"- Location: {location}\n"
+            f"- Attendees: {attendee_emails}\n"
+            f"- Event ID: {event_id}\n"
+            f"- Link: {link}"
         )
         logger.info(f"[get_events] Successfully retrieved detailed event {event_id} for {user_google_email}.")
         return event_details
@@ -316,7 +298,7 @@ async def get_events(
         end_time = item["end"].get("dateTime", item["end"].get("date"))
         link = item.get("htmlLink", "No Link")
         item_event_id = item.get("id", "No ID")
-        
+
         if detailed:
             # Add detailed information for multiple events
             description = item.get("description", "No Description")
@@ -325,10 +307,10 @@ async def get_events(
             attendee_emails = ", ".join([a.get("email", "") for a in attendees]) if attendees else "None"
             event_details_list.append(
                 f'- "{summary}" (Starts: {start_time}, Ends: {end_time})\n'
-                f'  Description: {description}\n'
-                f'  Location: {location}\n'
-                f'  Attendees: {attendee_emails}\n'
-                f'  ID: {item_event_id} | Link: {link}'
+                f"  Description: {description}\n"
+                f"  Location: {location}\n"
+                f"  Attendees: {attendee_emails}\n"
+                f"  ID: {item_event_id} | Link: {link}"
             )
         else:
             # Basic output format
@@ -338,14 +320,17 @@ async def get_events(
 
     if event_id:
         # Single event basic output
-        text_output = f"Successfully retrieved event from calendar '{calendar_id}' for {user_google_email}:\n" + "\n".join(event_details_list)
+        text_output = (
+            f"Successfully retrieved event from calendar '{calendar_id}' for {user_google_email}:\n"
+            + "\n".join(event_details_list)
+        )
     else:
         # Multiple events output
         text_output = (
             f"Successfully retrieved {len(items)} events from calendar '{calendar_id}' for {user_google_email}:\n"
             + "\n".join(event_details_list)
         )
-    
+
     logger.info(f"Successfully retrieved {len(items)} events for {user_google_email}.")
     return text_output
 
@@ -390,24 +375,16 @@ async def create_event(
     Returns:
         str: Confirmation message of the successful event creation with event link.
     """
-    logger.info(
-        f"[create_event] Invoked. Email: '{user_google_email}', Summary: {summary}"
-    )
+    logger.info(f"[create_event] Invoked. Email: '{user_google_email}', Summary: {summary}")
     logger.info(f"[create_event] Incoming attachments param: {attachments}")
     # If attachments value is a string, split by comma and strip whitespace
     if attachments and isinstance(attachments, str):
-        attachments = [a.strip() for a in attachments.split(',') if a.strip()]
+        attachments = [a.strip() for a in attachments.split(",") if a.strip()]
         logger.info(f"[create_event] Parsed attachments list from string: {attachments}")
     event_body: Dict[str, Any] = {
         "summary": summary,
-        "start": (
-            {"date": start_time}
-            if "T" not in start_time
-            else {"dateTime": start_time}
-        ),
-        "end": (
-            {"date": end_time} if "T" not in end_time else {"dateTime": end_time}
-        ),
+        "start": ({"date": start_time} if "T" not in start_time else {"dateTime": start_time}),
+        "end": ({"date": end_time} if "T" not in end_time else {"dateTime": end_time}),
     }
     if location:
         event_body["location"] = location
@@ -425,10 +402,8 @@ async def create_event(
     if reminders is not None or not use_default_reminders:
         # If custom reminders are provided, automatically disable default reminders
         effective_use_default = use_default_reminders and reminders is None
-        
-        reminder_data = {
-            "useDefault": effective_use_default
-        }
+
+        reminder_data = {"useDefault": effective_use_default}
         if reminders is not None:
             validated_reminders = _parse_reminders_json(reminders, "create_event")
             if validated_reminders:
@@ -436,7 +411,7 @@ async def create_event(
                 logger.info(f"[create_event] Added {len(validated_reminders)} custom reminders")
                 if use_default_reminders:
                     logger.info("[create_event] Custom reminders provided - disabling default reminders")
-        
+
         event_body["reminders"] = reminder_data
 
     if add_google_meet:
@@ -444,9 +419,7 @@ async def create_event(
         event_body["conferenceData"] = {
             "createRequest": {
                 "requestId": request_id,
-                "conferenceSolutionKey": {
-                    "type": "hangoutsMeet"
-                }
+                "conferenceSolutionKey": {"type": "hangoutsMeet"},
             }
         }
         logger.info(f"[create_event] Adding Google Meet conference with request ID: {request_id}")
@@ -488,26 +461,37 @@ async def create_event(
                             logger.info("[create_event] No filename found, using generic title")
                     except Exception as e:
                         logger.warning(f"Could not fetch metadata for file {file_id}: {e}")
-                event_body["attachments"].append({
-                    "fileUrl": file_url,
-                    "title": title,
-                    "mimeType": mime_type,
-                })
+                event_body["attachments"].append(
+                    {
+                        "fileUrl": file_url,
+                        "title": title,
+                        "mimeType": mime_type,
+                    }
+                )
         created_event = await asyncio.to_thread(
-            lambda: service.events().insert(
-                calendarId=calendar_id, body=event_body, supportsAttachments=True,
-                conferenceDataVersion=1 if add_google_meet else 0
-            ).execute()
+            lambda: service.events()
+            .insert(
+                calendarId=calendar_id,
+                body=event_body,
+                supportsAttachments=True,
+                conferenceDataVersion=1 if add_google_meet else 0,
+            )
+            .execute()
         )
     else:
         created_event = await asyncio.to_thread(
-            lambda: service.events().insert(
-                calendarId=calendar_id, body=event_body,
-                conferenceDataVersion=1 if add_google_meet else 0
-            ).execute()
+            lambda: service.events()
+            .insert(
+                calendarId=calendar_id,
+                body=event_body,
+                conferenceDataVersion=1 if add_google_meet else 0,
+            )
+            .execute()
         )
     link = created_event.get("htmlLink", "No link available")
-    confirmation_message = f"Successfully created event '{created_event.get('summary', summary)}' for {user_google_email}. Link: {link}"
+    confirmation_message = (
+        f"Successfully created event '{created_event.get('summary', summary)}' for {user_google_email}. Link: {link}"
+    )
 
     # Add Google Meet information if conference was created
     if add_google_meet and "conferenceData" in created_event:
@@ -520,9 +504,7 @@ async def create_event(
                         confirmation_message += f" Google Meet: {meet_link}"
                         break
 
-    logger.info(
-            f"Event created successfully for {user_google_email}. ID: {created_event.get('id')}, Link: {link}"
-        )
+    logger.info(f"Event created successfully for {user_google_email}. ID: {created_event.get('id')}, Link: {link}")
     return confirmation_message
 
 
@@ -566,26 +548,18 @@ async def modify_event(
     Returns:
         str: Confirmation message of the successful event modification with event link.
     """
-    logger.info(
-        f"[modify_event] Invoked. Email: '{user_google_email}', Event ID: {event_id}"
-    )
+    logger.info(f"[modify_event] Invoked. Email: '{user_google_email}', Event ID: {event_id}")
 
     # Build the event body with only the fields that are provided
     event_body: Dict[str, Any] = {}
     if summary is not None:
         event_body["summary"] = summary
     if start_time is not None:
-        event_body["start"] = (
-            {"date": start_time}
-            if "T" not in start_time
-            else {"dateTime": start_time}
-        )
+        event_body["start"] = {"date": start_time} if "T" not in start_time else {"dateTime": start_time}
         if timezone is not None and "dateTime" in event_body["start"]:
             event_body["start"]["timeZone"] = timezone
     if end_time is not None:
-        event_body["end"] = (
-            {"date": end_time} if "T" not in end_time else {"dateTime": end_time}
-        )
+        event_body["end"] = {"date": end_time} if "T" not in end_time else {"dateTime": end_time}
         if timezone is not None and "dateTime" in event_body["end"]:
             event_body["end"]["timeZone"] = timezone
     if description is not None:
@@ -594,7 +568,7 @@ async def modify_event(
         event_body["location"] = location
     if attendees is not None:
         event_body["attendees"] = [{"email": email} for email in attendees]
-    
+
     # Handle reminders
     if reminders is not None or use_default_reminders is not None:
         reminder_data = {}
@@ -608,27 +582,25 @@ async def modify_event(
             except Exception as e:
                 logger.warning(f"[modify_event] Could not fetch existing event for reminders: {e}")
                 reminder_data["useDefault"] = True  # Fallback to True if unable to fetch
-        
+
         # If custom reminders are provided, automatically disable default reminders
         if reminders is not None:
             if reminder_data.get("useDefault", False):
                 reminder_data["useDefault"] = False
                 logger.info("[modify_event] Custom reminders provided - disabling default reminders")
-            
+
             validated_reminders = _parse_reminders_json(reminders, "modify_event")
             if reminders and not validated_reminders:
-                logger.warning("[modify_event] Reminders provided but failed validation. No custom reminders will be set.")
+                logger.warning(
+                    "[modify_event] Reminders provided but failed validation. No custom reminders will be set."
+                )
             elif validated_reminders:
                 reminder_data["overrides"] = validated_reminders
                 logger.info(f"[modify_event] Updated reminders with {len(validated_reminders)} custom reminders")
-        
+
         event_body["reminders"] = reminder_data
 
-    if (
-        timezone is not None
-        and "start" not in event_body
-        and "end" not in event_body
-    ):
+    if timezone is not None and "start" not in event_body and "end" not in event_body:
         # If timezone is provided but start/end times are not, we need to fetch the existing event
         # to apply the timezone correctly. This is a simplification; a full implementation
         # might handle this more robustly or require start/end with timezone.
@@ -643,26 +615,26 @@ async def modify_event(
         raise Exception(message)
 
     # Log the event ID for debugging
-    logger.info(
-        f"[modify_event] Attempting to update event with ID: '{event_id}' in calendar '{calendar_id}'"
-    )
+    logger.info(f"[modify_event] Attempting to update event with ID: '{event_id}' in calendar '{calendar_id}'")
 
     # Get the existing event to preserve fields that aren't being updated
     try:
         existing_event = await asyncio.to_thread(
             lambda: service.events().get(calendarId=calendar_id, eventId=event_id).execute()
         )
-        logger.info(
-            "[modify_event] Successfully retrieved existing event before update"
-        )
+        logger.info("[modify_event] Successfully retrieved existing event before update")
 
         # Preserve existing fields if not provided in the update
-        _preserve_existing_fields(event_body, existing_event, {
-            "summary": summary,
-            "description": description,
-            "location": location,
-            "attendees": attendees
-        })
+        _preserve_existing_fields(
+            event_body,
+            existing_event,
+            {
+                "summary": summary,
+                "description": description,
+                "location": location,
+                "attendees": attendees,
+            },
+        )
 
         # Handle Google Meet conference data
         if add_google_meet is not None:
@@ -672,9 +644,7 @@ async def modify_event(
                 event_body["conferenceData"] = {
                     "createRequest": {
                         "requestId": request_id,
-                        "conferenceSolutionKey": {
-                            "type": "hangoutsMeet"
-                        }
+                        "conferenceSolutionKey": {"type": "hangoutsMeet"},
                     }
                 }
                 logger.info(f"[modify_event] Adding Google Meet conference with request ID: {request_id}")
@@ -682,16 +652,14 @@ async def modify_event(
                 # Remove Google Meet by setting conferenceData to empty
                 event_body["conferenceData"] = {}
                 logger.info("[modify_event] Removing Google Meet conference")
-        elif 'conferenceData' in existing_event:
+        elif "conferenceData" in existing_event:
             # Preserve existing conference data if not specified
             event_body["conferenceData"] = existing_event["conferenceData"]
             logger.info("[modify_event] Preserving existing conference data")
 
     except HttpError as get_error:
         if get_error.resp.status == 404:
-            logger.error(
-                f"[modify_event] Event not found during pre-update verification: {get_error}"
-            )
+            logger.error(f"[modify_event] Event not found during pre-update verification: {get_error}")
             message = f"Event not found during verification. The event with ID '{event_id}' could not be found in calendar '{calendar_id}'. This may be due to incorrect ID format or the event no longer exists."
             raise Exception(message)
         else:
@@ -702,7 +670,12 @@ async def modify_event(
     # Proceed with the update
     updated_event = await asyncio.to_thread(
         lambda: service.events()
-        .update(calendarId=calendar_id, eventId=event_id, body=event_body, conferenceDataVersion=1)
+        .update(
+            calendarId=calendar_id,
+            eventId=event_id,
+            body=event_body,
+            conferenceDataVersion=1,
+        )
         .execute()
     )
 
@@ -722,9 +695,7 @@ async def modify_event(
     elif add_google_meet is False:
         confirmation_message += " (Google Meet removed)"
 
-    logger.info(
-        f"Event modified successfully for {user_google_email}. ID: {updated_event.get('id')}, Link: {link}"
-    )
+    logger.info(f"Event modified successfully for {user_google_email}. ID: {updated_event.get('id')}, Link: {link}")
     return confirmation_message
 
 
@@ -743,28 +714,18 @@ async def delete_event(service, user_google_email: str, event_id: str, calendar_
     Returns:
         str: Confirmation message of the successful event deletion.
     """
-    logger.info(
-        f"[delete_event] Invoked. Email: '{user_google_email}', Event ID: {event_id}"
-    )
+    logger.info(f"[delete_event] Invoked. Email: '{user_google_email}', Event ID: {event_id}")
 
     # Log the event ID for debugging
-    logger.info(
-        f"[delete_event] Attempting to delete event with ID: '{event_id}' in calendar '{calendar_id}'"
-    )
+    logger.info(f"[delete_event] Attempting to delete event with ID: '{event_id}' in calendar '{calendar_id}'")
 
     # Try to get the event first to verify it exists
     try:
-        await asyncio.to_thread(
-            lambda: service.events().get(calendarId=calendar_id, eventId=event_id).execute()
-        )
-        logger.info(
-            "[delete_event] Successfully verified event exists before deletion"
-        )
+        await asyncio.to_thread(lambda: service.events().get(calendarId=calendar_id, eventId=event_id).execute())
+        logger.info("[delete_event] Successfully verified event exists before deletion")
     except HttpError as get_error:
         if get_error.resp.status == 404:
-            logger.error(
-                f"[delete_event] Event not found during pre-delete verification: {get_error}"
-            )
+            logger.error(f"[delete_event] Event not found during pre-delete verification: {get_error}")
             message = f"Event not found during verification. The event with ID '{event_id}' could not be found in calendar '{calendar_id}'. This may be due to incorrect ID format or the event no longer exists."
             raise Exception(message)
         else:
@@ -773,12 +734,10 @@ async def delete_event(service, user_google_email: str, event_id: str, calendar_
             )
 
     # Proceed with the deletion
-    await asyncio.to_thread(
-        lambda: service.events().delete(calendarId=calendar_id, eventId=event_id).execute()
-    )
+    await asyncio.to_thread(lambda: service.events().delete(calendarId=calendar_id, eventId=event_id).execute())
 
-    confirmation_message = f"Successfully deleted event (ID: {event_id}) from calendar '{calendar_id}' for {user_google_email}."
+    confirmation_message = (
+        f"Successfully deleted event (ID: {event_id}) from calendar '{calendar_id}' for {user_google_email}."
+    )
     logger.info(f"Event deleted successfully for {user_google_email}. ID: {event_id}")
     return confirmation_message
-
-

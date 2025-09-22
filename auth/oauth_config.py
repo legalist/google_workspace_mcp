@@ -26,7 +26,7 @@ class OAuthConfig:
         self.base_uri = os.getenv("WORKSPACE_MCP_BASE_URI", "http://localhost")
         self.port = int(os.getenv("PORT", os.getenv("WORKSPACE_MCP_PORT", "8000")))
         self.base_url = f"{self.base_uri}:{self.port}"
-        
+
         # External URL for reverse proxy scenarios
         self.external_url = os.getenv("WORKSPACE_EXTERNAL_URL")
 
@@ -38,7 +38,7 @@ class OAuthConfig:
         self.oauth21_enabled = os.getenv("MCP_ENABLE_OAUTH21", "false").lower() == "true"
         self.pkce_required = self.oauth21_enabled  # PKCE is mandatory in OAuth 2.1
         self.supported_code_challenge_methods = ["S256", "plain"] if not self.oauth21_enabled else ["S256"]
-        
+
         # Stateless mode configuration
         self.stateless_mode = os.getenv("WORKSPACE_MCP_STATELESS_MODE", "false").lower() == "true"
         if self.stateless_mode and not self.oauth21_enabled:
@@ -95,11 +95,13 @@ class OAuthConfig:
         origins.append(self.base_url)
 
         # VS Code and development origins
-        origins.extend([
-            "vscode-webview://",
-            "https://vscode.dev",
-            "https://github.dev",
-        ])
+        origins.extend(
+            [
+                "vscode-webview://",
+                "https://vscode.dev",
+                "https://github.dev",
+            ]
+        )
 
         # Custom origins from environment
         custom_origins = os.getenv("OAUTH_ALLOWED_ORIGINS")
@@ -120,7 +122,7 @@ class OAuthConfig:
     def get_oauth_base_url(self) -> str:
         """
         Get OAuth base URL for constructing OAuth endpoints.
-        
+
         Uses WORKSPACE_EXTERNAL_URL if set (for reverse proxy scenarios),
         otherwise falls back to constructed base_url with port.
 
@@ -212,6 +214,7 @@ class OAuthConfig:
 
         # Use the structured type for cleaner detection logic
         from auth.oauth_types import OAuthVersionDetectionParams
+
         params = OAuthVersionDetectionParams.from_request(request_params)
 
         # Clear OAuth 2.1 indicator: PKCE is present
@@ -224,6 +227,7 @@ class OAuthConfig:
         if authenticated_user:
             try:
                 from auth.oauth21_session_store import get_oauth21_session_store
+
                 store = get_oauth21_session_store()
                 if store.has_session(authenticated_user):
                     return "oauth21"
@@ -256,7 +260,10 @@ class OAuthConfig:
             "jwks_uri": "https://www.googleapis.com/oauth2/v3/certs",
             "response_types_supported": ["code", "token"],
             "grant_types_supported": ["authorization_code", "refresh_token"],
-            "token_endpoint_auth_methods_supported": ["client_secret_post", "client_secret_basic"],
+            "token_endpoint_auth_methods_supported": [
+                "client_secret_post",
+                "client_secret_basic",
+            ],
             "code_challenge_methods_supported": self.supported_code_challenge_methods,
         }
 

@@ -24,7 +24,7 @@ async def create_form(
     user_google_email: str,
     title: str,
     description: Optional[str] = None,
-    document_title: Optional[str] = None
+    document_title: Optional[str] = None,
 ) -> str:
     """
     Create a new form using the title given in the provided form message in the request.
@@ -40,11 +40,7 @@ async def create_form(
     """
     logger.info(f"[create_form] Invoked. Email: '{user_google_email}', Title: {title}")
 
-    form_body: Dict[str, Any] = {
-        "info": {
-            "title": title
-        }
-    }
+    form_body: Dict[str, Any] = {"info": {"title": title}}
 
     if description:
         form_body["info"]["description"] = description
@@ -52,9 +48,7 @@ async def create_form(
     if document_title:
         form_body["info"]["document_title"] = document_title
 
-    created_form = await asyncio.to_thread(
-        service.forms().create(body=form_body).execute
-    )
+    created_form = await asyncio.to_thread(service.forms().create(body=form_body).execute)
 
     form_id = created_form.get("formId")
     edit_url = f"https://docs.google.com/forms/d/{form_id}/edit"
@@ -68,11 +62,7 @@ async def create_form(
 @server.tool()
 @handle_http_errors("get_form", is_read_only=True, service_type="forms")
 @require_google_service("forms", "forms")
-async def get_form(
-    service,
-    user_google_email: str,
-    form_id: str
-) -> str:
+async def get_form(service, user_google_email: str, form_id: str) -> str:
     """
     Get a form.
 
@@ -85,9 +75,7 @@ async def get_form(
     """
     logger.info(f"[get_form] Invoked. Email: '{user_google_email}', Form ID: {form_id}")
 
-    form = await asyncio.to_thread(
-        service.forms().get(formId=form_id).execute
-    )
+    form = await asyncio.to_thread(service.forms().get(formId=form_id).execute)
 
     form_info = form.get("info", {})
     title = form_info.get("title", "No Title")
@@ -129,7 +117,7 @@ async def set_publish_settings(
     user_google_email: str,
     form_id: str,
     publish_as_template: bool = False,
-    require_authentication: bool = False
+    require_authentication: bool = False,
 ) -> str:
     """
     Updates the publish settings of a form.
@@ -147,12 +135,10 @@ async def set_publish_settings(
 
     settings_body = {
         "publishAsTemplate": publish_as_template,
-        "requireAuthentication": require_authentication
+        "requireAuthentication": require_authentication,
     }
 
-    await asyncio.to_thread(
-        service.forms().setPublishSettings(formId=form_id, body=settings_body).execute
-    )
+    await asyncio.to_thread(service.forms().setPublishSettings(formId=form_id, body=settings_body).execute)
 
     confirmation_message = f"Successfully updated publish settings for form {form_id} for {user_google_email}. Publish as template: {publish_as_template}, Require authentication: {require_authentication}"
     logger.info(f"Publish settings updated successfully for {user_google_email}. Form ID: {form_id}")
@@ -162,12 +148,7 @@ async def set_publish_settings(
 @server.tool()
 @handle_http_errors("get_form_response", is_read_only=True, service_type="forms")
 @require_google_service("forms", "forms")
-async def get_form_response(
-    service,
-    user_google_email: str,
-    form_id: str,
-    response_id: str
-) -> str:
+async def get_form_response(service, user_google_email: str, form_id: str, response_id: str) -> str:
     """
     Get one response from the form.
 
@@ -179,11 +160,11 @@ async def get_form_response(
     Returns:
         str: Response details including answers and metadata.
     """
-    logger.info(f"[get_form_response] Invoked. Email: '{user_google_email}', Form ID: {form_id}, Response ID: {response_id}")
-
-    response = await asyncio.to_thread(
-        service.forms().responses().get(formId=form_id, responseId=response_id).execute
+    logger.info(
+        f"[get_form_response] Invoked. Email: '{user_google_email}', Form ID: {form_id}, Response ID: {response_id}"
     )
+
+    response = await asyncio.to_thread(service.forms().responses().get(formId=form_id, responseId=response_id).execute)
 
     response_id = response.get("responseId", "Unknown")
     create_time = response.get("createTime", "Unknown")
@@ -221,7 +202,7 @@ async def list_form_responses(
     user_google_email: str,
     form_id: str,
     page_size: int = 10,
-    page_token: Optional[str] = None
+    page_token: Optional[str] = None,
 ) -> str:
     """
     List a form's responses.
@@ -237,16 +218,11 @@ async def list_form_responses(
     """
     logger.info(f"[list_form_responses] Invoked. Email: '{user_google_email}', Form ID: {form_id}")
 
-    params = {
-        "formId": form_id,
-        "pageSize": page_size
-    }
+    params = {"formId": form_id, "pageSize": page_size}
     if page_token:
         params["pageToken"] = page_token
 
-    responses_result = await asyncio.to_thread(
-        service.forms().responses().list(**params).execute
-    )
+    responses_result = await asyncio.to_thread(service.forms().responses().list(**params).execute)
 
     responses = responses_result.get("responses", [])
     next_page_token = responses_result.get("nextPageToken")

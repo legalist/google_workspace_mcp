@@ -48,7 +48,7 @@ async def list_task_lists(
     service: Resource,
     user_google_email: str,
     max_results: int = 1000,
-    page_token: Optional[str] = None
+    page_token: Optional[str] = None,
 ) -> str:
     """
     List all task lists for the user.
@@ -70,9 +70,7 @@ async def list_task_lists(
         if page_token:
             params["pageToken"] = page_token
 
-        result = await asyncio.to_thread(
-            service.tasklists().list(**params).execute
-        )
+        result = await asyncio.to_thread(service.tasklists().list(**params).execute)
 
         task_lists = result.get("items", [])
         next_page_token = result.get("nextPageToken")
@@ -104,11 +102,7 @@ async def list_task_lists(
 @server.tool()  # type: ignore
 @require_google_service("tasks", "tasks_read")  # type: ignore
 @handle_http_errors("get_task_list", service_type="tasks")  # type: ignore
-async def get_task_list(
-    service: Resource,
-    user_google_email: str,
-    task_list_id: str
-) -> str:
+async def get_task_list(service: Resource, user_google_email: str, task_list_id: str) -> str:
     """
     Get details of a specific task list.
 
@@ -122,15 +116,13 @@ async def get_task_list(
     logger.info(f"[get_task_list] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}")
 
     try:
-        task_list = await asyncio.to_thread(
-            service.tasklists().get(tasklist=task_list_id).execute
-        )
+        task_list = await asyncio.to_thread(service.tasklists().get(tasklist=task_list_id).execute)
 
         response = f"""Task List Details for {user_google_email}:
-- Title: {task_list['title']}
-- ID: {task_list['id']}
-- Updated: {task_list.get('updated', 'N/A')}
-- Self Link: {task_list.get('selfLink', 'N/A')}"""
+- Title: {task_list["title"]}
+- ID: {task_list["id"]}
+- Updated: {task_list.get("updated", "N/A")}
+- Self Link: {task_list.get("selfLink", "N/A")}"""
 
         logger.info(f"Retrieved task list '{task_list['title']}' for {user_google_email}")
         return response
@@ -148,11 +140,7 @@ async def get_task_list(
 @server.tool()  # type: ignore
 @require_google_service("tasks", "tasks")  # type: ignore
 @handle_http_errors("create_task_list", service_type="tasks")  # type: ignore
-async def create_task_list(
-    service: Resource,
-    user_google_email: str,
-    title: str
-) -> str:
+async def create_task_list(service: Resource, user_google_email: str, title: str) -> str:
     """
     Create a new task list.
 
@@ -166,19 +154,15 @@ async def create_task_list(
     logger.info(f"[create_task_list] Invoked. Email: '{user_google_email}', Title: '{title}'")
 
     try:
-        body = {
-            "title": title
-        }
+        body = {"title": title}
 
-        result = await asyncio.to_thread(
-            service.tasklists().insert(body=body).execute
-        )
+        result = await asyncio.to_thread(service.tasklists().insert(body=body).execute)
 
         response = f"""Task List Created for {user_google_email}:
-- Title: {result['title']}
-- ID: {result['id']}
-- Created: {result.get('updated', 'N/A')}
-- Self Link: {result.get('selfLink', 'N/A')}"""
+- Title: {result["title"]}
+- ID: {result["id"]}
+- Created: {result.get("updated", "N/A")}
+- Self Link: {result.get("selfLink", "N/A")}"""
 
         logger.info(f"Created task list '{title}' with ID {result['id']} for {user_google_email}")
         return response
@@ -196,12 +180,7 @@ async def create_task_list(
 @server.tool()  # type: ignore
 @require_google_service("tasks", "tasks")  # type: ignore
 @handle_http_errors("update_task_list", service_type="tasks")  # type: ignore
-async def update_task_list(
-    service: Resource,
-    user_google_email: str,
-    task_list_id: str,
-    title: str
-) -> str:
+async def update_task_list(service: Resource, user_google_email: str, task_list_id: str, title: str) -> str:
     """
     Update an existing task list.
 
@@ -213,22 +192,19 @@ async def update_task_list(
     Returns:
         str: Confirmation message with updated task list details.
     """
-    logger.info(f"[update_task_list] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, New Title: '{title}'")
+    logger.info(
+        f"[update_task_list] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, New Title: '{title}'"
+    )
 
     try:
-        body = {
-            "id": task_list_id,
-            "title": title
-        }
+        body = {"id": task_list_id, "title": title}
 
-        result = await asyncio.to_thread(
-            service.tasklists().update(tasklist=task_list_id, body=body).execute
-        )
+        result = await asyncio.to_thread(service.tasklists().update(tasklist=task_list_id, body=body).execute)
 
         response = f"""Task List Updated for {user_google_email}:
-- Title: {result['title']}
-- ID: {result['id']}
-- Updated: {result.get('updated', 'N/A')}"""
+- Title: {result["title"]}
+- ID: {result["id"]}
+- Updated: {result.get("updated", "N/A")}"""
 
         logger.info(f"Updated task list {task_list_id} with new title '{title}' for {user_google_email}")
         return response
@@ -246,11 +222,7 @@ async def update_task_list(
 @server.tool()  # type: ignore
 @require_google_service("tasks", "tasks")  # type: ignore
 @handle_http_errors("delete_task_list", service_type="tasks")  # type: ignore
-async def delete_task_list(
-    service: Resource,
-    user_google_email: str,
-    task_list_id: str
-) -> str:
+async def delete_task_list(service: Resource, user_google_email: str, task_list_id: str) -> str:
     """
     Delete a task list. Note: This will also delete all tasks in the list.
 
@@ -264,9 +236,7 @@ async def delete_task_list(
     logger.info(f"[delete_task_list] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}")
 
     try:
-        await asyncio.to_thread(
-            service.tasklists().delete(tasklist=task_list_id).execute
-        )
+        await asyncio.to_thread(service.tasklists().delete(tasklist=task_list_id).execute)
 
         response = f"Task list {task_list_id} has been deleted for {user_google_email}. All tasks in this list have also been deleted."
 
@@ -350,9 +320,7 @@ async def list_tasks(
         if updated_min:
             params["updatedMin"] = updated_min
 
-        result = await asyncio.to_thread(
-            service.tasks().list(**params).execute
-        )
+        result = await asyncio.to_thread(service.tasks().list(**params).execute)
 
         tasks = result.get("items", [])
         next_page_token = result.get("nextPageToken")
@@ -366,9 +334,7 @@ async def list_tasks(
         while results_remaining > 0 and next_page_token:
             params["pageToken"] = next_page_token
             params["maxResults"] = str(results_remaining)
-            result = await asyncio.to_thread(
-                service.tasks().list(**params).execute
-            )
+            result = await asyncio.to_thread(service.tasks().list(**params).execute)
             more_tasks = result.get("items", [])
             next_page_token = result.get("nextPageToken")
             if len(more_tasks) == 0:
@@ -411,17 +377,11 @@ def get_structured_tasks(tasks: List[Dict[str, str]]) -> List[StructuredTask]:
     Returns:
         list: Sorted list of top-level StructuredTask objects with nested subtasks.
     """
-    tasks_by_id = {
-        task["id"]: StructuredTask(task, is_placeholder_parent=False) for task in tasks
-    }
-    positions_by_id = {
-        task["id"]: int(task["position"]) for task in tasks if "position" in task
-    }
+    tasks_by_id = {task["id"]: StructuredTask(task, is_placeholder_parent=False) for task in tasks}
+    positions_by_id = {task["id"]: int(task["position"]) for task in tasks if "position" in task}
 
     # Placeholder virtual root as parent for top-level tasks
-    root_task = StructuredTask(
-        {"id": "root", "title": "Root"}, is_placeholder_parent=False
-    )
+    root_task = StructuredTask({"id": "root", "title": "Root"}, is_placeholder_parent=False)
 
     for task in tasks:
         structured_task = tasks_by_id[task["id"]]
@@ -448,9 +408,7 @@ def get_structured_tasks(tasks: List[Dict[str, str]]) -> List[StructuredTask]:
     return root_task.subtasks
 
 
-def sort_structured_tasks(
-    root_task: StructuredTask, positions_by_id: Dict[str, int]
-) -> None:
+def sort_structured_tasks(root_task: StructuredTask, positions_by_id: Dict[str, int]) -> None:
     """
     Recursively sort--in place--StructuredTask objects and their subtasks based on position.
 
@@ -519,12 +477,7 @@ This can also occur due to filtering that excludes parent tasks while including 
 @server.tool()  # type: ignore
 @require_google_service("tasks", "tasks_read")  # type: ignore
 @handle_http_errors("get_task", service_type="tasks")  # type: ignore
-async def get_task(
-    service: Resource,
-    user_google_email: str,
-    task_list_id: str,
-    task_id: str
-) -> str:
+async def get_task(service: Resource, user_google_email: str, task_list_id: str, task_id: str) -> str:
     """
     Get details of a specific task.
 
@@ -539,29 +492,27 @@ async def get_task(
     logger.info(f"[get_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}")
 
     try:
-        task = await asyncio.to_thread(
-            service.tasks().get(tasklist=task_list_id, task=task_id).execute
-        )
+        task = await asyncio.to_thread(service.tasks().get(tasklist=task_list_id, task=task_id).execute)
 
         response = f"""Task Details for {user_google_email}:
-- Title: {task.get('title', 'Untitled')}
-- ID: {task['id']}
-- Status: {task.get('status', 'N/A')}
-- Updated: {task.get('updated', 'N/A')}"""
+- Title: {task.get("title", "Untitled")}
+- ID: {task["id"]}
+- Status: {task.get("status", "N/A")}
+- Updated: {task.get("updated", "N/A")}"""
 
-        if task.get('due'):
+        if task.get("due"):
             response += f"\n- Due Date: {task['due']}"
-        if task.get('completed'):
+        if task.get("completed"):
             response += f"\n- Completed: {task['completed']}"
-        if task.get('notes'):
+        if task.get("notes"):
             response += f"\n- Notes: {task['notes']}"
-        if task.get('parent'):
+        if task.get("parent"):
             response += f"\n- Parent Task ID: {task['parent']}"
-        if task.get('position'):
+        if task.get("position"):
             response += f"\n- Position: {task['position']}"
-        if task.get('selfLink'):
+        if task.get("selfLink"):
             response += f"\n- Self Link: {task['selfLink']}"
-        if task.get('webViewLink'):
+        if task.get("webViewLink"):
             response += f"\n- Web View Link: {task['webViewLink']}"
 
         logger.info(f"Retrieved task '{task.get('title', 'Untitled')}' for {user_google_email}")
@@ -588,7 +539,7 @@ async def create_task(
     notes: Optional[str] = None,
     due: Optional[str] = None,
     parent: Optional[str] = None,
-    previous: Optional[str] = None
+    previous: Optional[str] = None,
 ) -> str:
     """
     Create a new task in a task list.
@@ -608,9 +559,7 @@ async def create_task(
     logger.info(f"[create_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Title: '{title}'")
 
     try:
-        body = {
-            "title": title
-        }
+        body = {"title": title}
         if notes:
             body["notes"] = notes
         if due:
@@ -622,21 +571,19 @@ async def create_task(
         if previous:
             params["previous"] = previous
 
-        result = await asyncio.to_thread(
-            service.tasks().insert(**params).execute
-        )
+        result = await asyncio.to_thread(service.tasks().insert(**params).execute)
 
         response = f"""Task Created for {user_google_email}:
-- Title: {result['title']}
-- ID: {result['id']}
-- Status: {result.get('status', 'N/A')}
-- Updated: {result.get('updated', 'N/A')}"""
+- Title: {result["title"]}
+- ID: {result["id"]}
+- Status: {result.get("status", "N/A")}
+- Updated: {result.get("updated", "N/A")}"""
 
-        if result.get('due'):
+        if result.get("due"):
             response += f"\n- Due Date: {result['due']}"
-        if result.get('notes'):
+        if result.get("notes"):
             response += f"\n- Notes: {result['notes']}"
-        if result.get('webViewLink'):
+        if result.get("webViewLink"):
             response += f"\n- Web View Link: {result['webViewLink']}"
 
         logger.info(f"Created task '{title}' with ID {result['id']} for {user_google_email}")
@@ -663,7 +610,7 @@ async def update_task(
     title: Optional[str] = None,
     notes: Optional[str] = None,
     status: Optional[str] = None,
-    due: Optional[str] = None
+    due: Optional[str] = None,
 ) -> str:
     """
     Update an existing task.
@@ -680,18 +627,18 @@ async def update_task(
     Returns:
         str: Confirmation message with updated task details.
     """
-    logger.info(f"[update_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}")
+    logger.info(
+        f"[update_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}"
+    )
 
     try:
         # First get the current task to build the update body
-        current_task = await asyncio.to_thread(
-            service.tasks().get(tasklist=task_list_id, task=task_id).execute
-        )
+        current_task = await asyncio.to_thread(service.tasks().get(tasklist=task_list_id, task=task_id).execute)
 
         body = {
             "id": task_id,
             "title": title if title is not None else current_task.get("title", ""),
-            "status": status if status is not None else current_task.get("status", "needsAction")
+            "status": status if status is not None else current_task.get("status", "needsAction"),
         }
 
         if notes is not None:
@@ -704,21 +651,19 @@ async def update_task(
         elif current_task.get("due"):
             body["due"] = current_task["due"]
 
-        result = await asyncio.to_thread(
-            service.tasks().update(tasklist=task_list_id, task=task_id, body=body).execute
-        )
+        result = await asyncio.to_thread(service.tasks().update(tasklist=task_list_id, task=task_id, body=body).execute)
 
         response = f"""Task Updated for {user_google_email}:
-- Title: {result['title']}
-- ID: {result['id']}
-- Status: {result.get('status', 'N/A')}
-- Updated: {result.get('updated', 'N/A')}"""
+- Title: {result["title"]}
+- ID: {result["id"]}
+- Status: {result.get("status", "N/A")}
+- Updated: {result.get("updated", "N/A")}"""
 
-        if result.get('due'):
+        if result.get("due"):
             response += f"\n- Due Date: {result['due']}"
-        if result.get('notes'):
+        if result.get("notes"):
             response += f"\n- Notes: {result['notes']}"
-        if result.get('completed'):
+        if result.get("completed"):
             response += f"\n- Completed: {result['completed']}"
 
         logger.info(f"Updated task {task_id} for {user_google_email}")
@@ -737,12 +682,7 @@ async def update_task(
 @server.tool()  # type: ignore
 @require_google_service("tasks", "tasks")  # type: ignore
 @handle_http_errors("delete_task", service_type="tasks")  # type: ignore
-async def delete_task(
-    service: Resource,
-    user_google_email: str,
-    task_list_id: str,
-    task_id: str
-) -> str:
+async def delete_task(service: Resource, user_google_email: str, task_list_id: str, task_id: str) -> str:
     """
     Delete a task from a task list.
 
@@ -754,12 +694,12 @@ async def delete_task(
     Returns:
         str: Confirmation message.
     """
-    logger.info(f"[delete_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}")
+    logger.info(
+        f"[delete_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}"
+    )
 
     try:
-        await asyncio.to_thread(
-            service.tasks().delete(tasklist=task_list_id, task=task_id).execute
-        )
+        await asyncio.to_thread(service.tasks().delete(tasklist=task_list_id, task=task_id).execute)
 
         response = f"Task {task_id} has been deleted from task list {task_list_id} for {user_google_email}."
 
@@ -786,7 +726,7 @@ async def move_task(
     task_id: str,
     parent: Optional[str] = None,
     previous: Optional[str] = None,
-    destination_task_list: Optional[str] = None
+    destination_task_list: Optional[str] = None,
 ) -> str:
     """
     Move a task to a different position or parent within the same list, or to a different list.
@@ -805,10 +745,7 @@ async def move_task(
     logger.info(f"[move_task] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}, Task ID: {task_id}")
 
     try:
-        params = {
-            "tasklist": task_list_id,
-            "task": task_id
-        }
+        params = {"tasklist": task_list_id, "task": task_id}
         if parent:
             params["parent"] = parent
         if previous:
@@ -816,19 +753,17 @@ async def move_task(
         if destination_task_list:
             params["destinationTasklist"] = destination_task_list
 
-        result = await asyncio.to_thread(
-            service.tasks().move(**params).execute
-        )
+        result = await asyncio.to_thread(service.tasks().move(**params).execute)
 
         response = f"""Task Moved for {user_google_email}:
-- Title: {result['title']}
-- ID: {result['id']}
-- Status: {result.get('status', 'N/A')}
-- Updated: {result.get('updated', 'N/A')}"""
+- Title: {result["title"]}
+- ID: {result["id"]}
+- Status: {result.get("status", "N/A")}
+- Updated: {result.get("updated", "N/A")}"""
 
-        if result.get('parent'):
+        if result.get("parent"):
             response += f"\n- Parent Task ID: {result['parent']}"
-        if result.get('position'):
+        if result.get("position"):
             response += f"\n- Position: {result['position']}"
 
         move_details = []
@@ -858,11 +793,7 @@ async def move_task(
 @server.tool()  # type: ignore
 @require_google_service("tasks", "tasks")  # type: ignore
 @handle_http_errors("clear_completed_tasks", service_type="tasks")  # type: ignore
-async def clear_completed_tasks(
-    service: Resource,
-    user_google_email: str,
-    task_list_id: str
-) -> str:
+async def clear_completed_tasks(service: Resource, user_google_email: str, task_list_id: str) -> str:
     """
     Clear all completed tasks from a task list. The tasks will be marked as hidden.
 
@@ -876,9 +807,7 @@ async def clear_completed_tasks(
     logger.info(f"[clear_completed_tasks] Invoked. Email: '{user_google_email}', Task List ID: {task_list_id}")
 
     try:
-        await asyncio.to_thread(
-            service.tasks().clear(tasklist=task_list_id).execute
-        )
+        await asyncio.to_thread(service.tasks().clear(tasklist=task_list_id).execute)
 
         response = f"All completed tasks have been cleared from task list {task_list_id} for {user_google_email}. The tasks are now hidden and won't appear in default task list views."
 

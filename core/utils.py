@@ -47,9 +47,7 @@ def check_credentials_directory_permissions(credentials_dir: str = None) -> None
                 with open(test_file, "w") as f:
                     f.write("test")
                 os.remove(test_file)
-                logger.info(
-                    f"Credentials directory permissions check passed: {os.path.abspath(credentials_dir)}"
-                )
+                logger.info(f"Credentials directory permissions check passed: {os.path.abspath(credentials_dir)}")
             except (PermissionError, OSError) as e:
                 raise PermissionError(
                     f"Cannot write to existing credentials directory '{os.path.abspath(credentials_dir)}': {e}"
@@ -80,9 +78,7 @@ def check_credentials_directory_permissions(credentials_dir: str = None) -> None
     except PermissionError:
         raise
     except Exception as e:
-        raise OSError(
-            f"Unexpected error checking credentials directory permissions: {e}"
-        )
+        raise OSError(f"Unexpected error checking credentials directory permissions: {e}")
 
 
 def extract_office_xml_text(file_bytes: bytes, mime_type: str) -> Optional[str]:
@@ -98,32 +94,17 @@ def extract_office_xml_text(file_bytes: bytes, mime_type: str) -> Optional[str]:
         with zipfile.ZipFile(io.BytesIO(file_bytes)) as zf:
             targets: List[str] = []
             # Map MIME → iterable of XML files to inspect
-            if (
-                mime_type
-                == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            ):
+            if mime_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
                 targets = ["word/document.xml"]
-            elif (
-                mime_type
-                == "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            ):
+            elif mime_type == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
                 targets = [n for n in zf.namelist() if n.startswith("ppt/slides/slide")]
-            elif (
-                mime_type
-                == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            ):
-                targets = [
-                    n
-                    for n in zf.namelist()
-                    if n.startswith("xl/worksheets/sheet") and "drawing" not in n
-                ]
+            elif mime_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                targets = [n for n in zf.namelist() if n.startswith("xl/worksheets/sheet") and "drawing" not in n]
                 # Attempt to parse sharedStrings.xml for Excel files
                 try:
                     shared_strings_xml = zf.read("xl/sharedStrings.xml")
                     shared_strings_root = ET.fromstring(shared_strings_xml)
-                    for si_element in shared_strings_root.findall(
-                        f"{{{ns_excel_main}}}si"
-                    ):
+                    for si_element in shared_strings_root.findall(f"{{{ns_excel_main}}}si"):
                         text_parts = []
                         # Find all <t> elements, simple or within <r> runs, and concatenate their text
                         for t_element in si_element.findall(f".//{{{ns_excel_main}}}t"):
@@ -131,14 +112,10 @@ def extract_office_xml_text(file_bytes: bytes, mime_type: str) -> Optional[str]:
                                 text_parts.append(t_element.text)
                         shared_strings.append("".join(text_parts))
                 except KeyError:
-                    logger.info(
-                        "No sharedStrings.xml found in Excel file (this is optional)."
-                    )
+                    logger.info("No sharedStrings.xml found in Excel file (this is optional).")
                 except ET.ParseError as e:
                     logger.error(f"Error parsing sharedStrings.xml: {e}")
-                except (
-                    Exception
-                ) as e:  # Catch any other unexpected error during sharedStrings parsing
+                except Exception as e:  # Catch any other unexpected error during sharedStrings parsing
                     logger.error(
                         f"Unexpected error processing sharedStrings.xml: {e}",
                         exc_info=True,
@@ -153,16 +130,9 @@ def extract_office_xml_text(file_bytes: bytes, mime_type: str) -> Optional[str]:
                     xml_root = ET.fromstring(xml_content)
                     member_texts: List[str] = []
 
-                    if (
-                        mime_type
-                        == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    ):
-                        for cell_element in xml_root.findall(
-                            f".//{{{ns_excel_main}}}c"
-                        ):  # Find all <c> elements
-                            value_element = cell_element.find(
-                                f"{{{ns_excel_main}}}v"
-                            )  # Find <v> under <c>
+                    if mime_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                        for cell_element in xml_root.findall(f".//{{{ns_excel_main}}}c"):  # Find all <c> elements
+                            value_element = cell_element.find(f"{{{ns_excel_main}}}v")  # Find <v> under <c>
 
                             # Skip if cell has no value element or value element has no text
                             if value_element is None or value_element.text is None:
@@ -176,7 +146,7 @@ def extract_office_xml_text(file_bytes: bytes, mime_type: str) -> Optional[str]:
                                         member_texts.append(shared_strings[ss_idx])
                                     else:
                                         logger.warning(
-                                            f"Invalid shared string index {ss_idx} in {member}. Max index: {len(shared_strings)-1}"
+                                            f"Invalid shared string index {ss_idx} in {member}. Max index: {len(shared_strings) - 1}"
                                         )
                                 except ValueError:
                                     logger.warning(
@@ -188,24 +158,16 @@ def extract_office_xml_text(file_bytes: bytes, mime_type: str) -> Optional[str]:
                         for elem in xml_root.iter():
                             # For Word: <w:t> where w is "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
                             # For PowerPoint: <a:t> where a is "http://schemas.openxmlformats.org/drawingml/2006/main"
-                            if (
-                                elem.tag.endswith("}t") and elem.text
-                            ):  # Check for any namespaced tag ending with 't'
+                            if elem.tag.endswith("}t") and elem.text:  # Check for any namespaced tag ending with 't'
                                 cleaned_text = elem.text.strip()
-                                if (
-                                    cleaned_text
-                                ):  # Add only if there's non-whitespace text
+                                if cleaned_text:  # Add only if there's non-whitespace text
                                     member_texts.append(cleaned_text)
 
                     if member_texts:
-                        pieces.append(
-                            " ".join(member_texts)
-                        )  # Join texts from one member with spaces
+                        pieces.append(" ".join(member_texts))  # Join texts from one member with spaces
 
                 except ET.ParseError as e:
-                    logger.warning(
-                        f"Could not parse XML in member '{member}' for {mime_type} file: {e}"
-                    )
+                    logger.warning(f"Could not parse XML in member '{member}' for {mime_type} file: {e}")
                 except Exception as e:
                     logger.error(
                         f"Error processing member '{member}' for {mime_type}: {e}",
@@ -223,15 +185,11 @@ def extract_office_xml_text(file_bytes: bytes, mime_type: str) -> Optional[str]:
     except zipfile.BadZipFile:
         logger.warning(f"File is not a valid ZIP archive (mime_type: {mime_type}).")
         return None
-    except (
-        ET.ParseError
-    ) as e:  # Catch parsing errors at the top level if zipfile itself is XML-like
+    except ET.ParseError as e:  # Catch parsing errors at the top level if zipfile itself is XML-like
         logger.error(f"XML parsing error at a high level for {mime_type}: {e}")
         return None
     except Exception as e:
-        logger.error(
-            f"Failed to extract office XML text for {mime_type}: {e}", exc_info=True
-        )
+        logger.error(f"Failed to extract office XML text for {mime_type}: {e}", exc_info=True)
         return None
 
 
@@ -269,9 +227,7 @@ def handle_http_errors(tool_name: str, is_read_only: bool = False, service_type:
                         )
                         await asyncio.sleep(delay)
                     else:
-                        logger.error(
-                            f"SSL error in {tool_name} on final attempt: {e}. Raising exception."
-                        )
+                        logger.error(f"SSL error in {tool_name} on final attempt: {e}. Raising exception.")
                         raise TransientNetworkError(
                             f"A transient SSL error occurred in '{tool_name}' after {max_retries} attempts. "
                             "This is likely a temporary network or certificate issue. Please try again shortly."
@@ -279,16 +235,13 @@ def handle_http_errors(tool_name: str, is_read_only: bool = False, service_type:
                 except HttpError as error:
                     user_google_email = kwargs.get("user_google_email", "N/A")
                     error_details = str(error)
-                    
+
                     # Check if this is an API not enabled error
                     if error.resp.status == 403 and "accessNotConfigured" in error_details:
                         enablement_msg = get_api_enablement_message(error_details, service_type)
-                        
+
                         if enablement_msg:
-                            message = (
-                                f"API error in {tool_name}: {enablement_msg}\n\n"
-                                f"User: {user_google_email}"
-                            )
+                            message = f"API error in {tool_name}: {enablement_msg}\n\nUser: {user_google_email}"
                         else:
                             message = (
                                 f"API error in {tool_name}: {error}. "
@@ -305,7 +258,7 @@ def handle_http_errors(tool_name: str, is_read_only: bool = False, service_type:
                     else:
                         # Other HTTP errors (400 Bad Request, etc.) - don't suggest re-auth
                         message = f"API error in {tool_name}: {error}"
-                    
+
                     logger.error(f"API error in {tool_name}: {error}", exc_info=True)
                     raise Exception(message) from error
                 except TransientNetworkError:

@@ -13,7 +13,7 @@ from auth.oauth_config import (
     get_oauth_redirect_uri,
     set_transport_mode,
     get_transport_mode,
-    is_oauth21_enabled
+    is_oauth21_enabled,
 )
 
 # Server configuration
@@ -25,11 +25,11 @@ USER_GOOGLE_EMAIL = None if is_oauth21_enabled() else os.getenv("USER_GOOGLE_EMA
 
 # Re-export OAuth functions for backward compatibility
 __all__ = [
-    'WORKSPACE_MCP_PORT',
-    'WORKSPACE_MCP_BASE_URI',
-    'USER_GOOGLE_EMAIL',
-    'get_oauth_base_url',
-    'get_oauth_redirect_uri',
-    'set_transport_mode',
-    'get_transport_mode'
+    "WORKSPACE_MCP_PORT",
+    "WORKSPACE_MCP_BASE_URI",
+    "USER_GOOGLE_EMAIL",
+    "get_oauth_base_url",
+    "get_oauth_redirect_uri",
+    "set_transport_mode",
+    "get_transport_mode",
 ]

@@ -14,7 +14,7 @@ from google.auth.transport.requests import Request
 from google.auth.exceptions import RefreshError
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from auth.scopes import SCOPES, get_current_scopes # noqa
+from auth.scopes import SCOPES, get_current_scopes  # noqa
 from auth.oauth21_session_store import get_oauth21_session_store
 from auth.credential_store import get_credential_store
 from auth.oauth_config import get_oauth_config, is_stateless_mode
@@ -55,9 +55,7 @@ DEFAULT_CREDENTIALS_DIR = get_default_credentials_dir()
 
 # Session credentials now handled by OAuth21SessionStore - no local cache needed
 # Centralized Client Secrets Path Logic
-_client_secrets_env = os.getenv("GOOGLE_CLIENT_SECRET_PATH") or os.getenv(
-    "GOOGLE_CLIENT_SECRETS"
-)
+_client_secrets_env = os.getenv("GOOGLE_CLIENT_SECRET_PATH") or os.getenv("GOOGLE_CLIENT_SECRETS")
 if _client_secrets_env:
     CONFIG_CLIENT_SECRETS_PATH = _client_secrets_env
 else:
@@ -84,28 +82,20 @@ def _find_any_credentials(
         store = get_credential_store()
         users = store.list_users()
         if not users:
-            logger.info(
-                "[single-user] No users found with credentials via credential store"
-            )
+            logger.info("[single-user] No users found with credentials via credential store")
             return None
 
         # Return credentials for the first user found
         first_user = users[0]
         credentials = store.get_credential(first_user)
         if credentials:
-            logger.info(
-                f"[single-user] Found credentials for {first_user} via credential store"
-            )
+            logger.info(f"[single-user] Found credentials for {first_user} via credential store")
             return credentials
         else:
-            logger.warning(
-                f"[single-user] Could not load credentials for {first_user} via credential store"
-            )
+            logger.warning(f"[single-user] Could not load credentials for {first_user} via credential store")
 
     except Exception as e:
-        logger.error(
-            f"[single-user] Error finding credentials via credential store: {e}"
-        )
+        logger.error(f"[single-user] Error finding credentials via credential store: {e}")
 
     logger.info("[single-user] No valid credentials found via credential store")
     return None
@@ -117,9 +107,7 @@ def save_credentials_to_session(session_id: str, credentials: Credentials):
     user_email = None
     if credentials and credentials.id_token:
         try:
-            decoded_token = jwt.decode(
-                credentials.id_token, options={"verify_signature": False}
-            )
+            decoded_token = jwt.decode(credentials.id_token, options={"verify_signature": False})
             user_email = decoded_token.get("email")
         except Exception as e:
             logger.debug(f"Could not decode id_token to get email: {e}")
@@ -135,7 +123,7 @@ def save_credentials_to_session(session_id: str, credentials: Credentials):
             client_secret=credentials.client_secret,
             scopes=credentials.scopes,
             expiry=credentials.expiry,
-            mcp_session_id=session_id
+            mcp_session_id=session_id,
         )
         logger.debug(f"Credentials saved to OAuth21SessionStore for session_id: {session_id}, user: {user_email}")
     else:
@@ -147,13 +135,9 @@ def load_credentials_from_session(session_id: str) -> Optional[Credentials]:
     store = get_oauth21_session_store()
     credentials = store.get_credentials_by_mcp_session(session_id)
     if credentials:
-        logger.debug(
-            f"Credentials loaded from OAuth21SessionStore for session_id: {session_id}"
-        )
+        logger.debug(f"Credentials loaded from OAuth21SessionStore for session_id: {session_id}")
     else:
-        logger.debug(
-            f"No credentials found in OAuth21SessionStore for session_id: {session_id}"
-        )
+        logger.debug(f"No credentials found in OAuth21SessionStore for session_id: {session_id}")
     return credentials
 
 
@@ -228,19 +212,13 @@ def load_client_secrets(client_secrets_path: str) -> Dict[str, Any]:
             client_config = json.load(f)
             # The file usually contains a top-level key like "web" or "installed"
             if "web" in client_config:
-                logger.info(
-                    f"Loaded OAuth client credentials from file: {client_secrets_path}"
-                )
+                logger.info(f"Loaded OAuth client credentials from file: {client_secrets_path}")
                 return client_config["web"]
             elif "installed" in client_config:
-                logger.info(
-                    f"Loaded OAuth client credentials from file: {client_secrets_path}"
-                )
+                logger.info(f"Loaded OAuth client credentials from file: {client_secrets_path}")
                 return client_config["installed"]
             else:
-                logger.error(
-                    f"Client secrets file {client_secrets_path} has unexpected format."
-                )
+                logger.error(f"Client secrets file {client_secrets_path} has unexpected format.")
                 raise ValueError("Invalid client secrets file format")
     except (IOError, json.JSONDecodeError) as e:
         logger.error(f"Error loading client secrets file {client_secrets_path}: {e}")
@@ -264,17 +242,13 @@ def check_client_secrets() -> Optional[str]:
     return None
 
 
-def create_oauth_flow(
-    scopes: List[str], redirect_uri: str, state: Optional[str] = None
-) -> Flow:
+def create_oauth_flow(scopes: List[str], redirect_uri: str, state: Optional[str] = None) -> Flow:
     """Creates an OAuth flow using environment variables or client secrets file."""
     # Try environment variables first
     env_config = load_client_secrets_from_env()
     if env_config:
         # Use client config directly
-        flow = Flow.from_client_config(
-            env_config, scopes=scopes, redirect_uri=redirect_uri, state=state
-        )
+        flow = Flow.from_client_config(env_config, scopes=scopes, redirect_uri=redirect_uri, state=state)
         logger.debug("Created OAuth flow from environment variables")
         return flow
 
@@ -290,9 +264,7 @@ def create_oauth_flow(
         redirect_uri=redirect_uri,
         state=state,
     )
-    logger.debug(
-        f"Created OAuth flow from client secrets file: {CONFIG_CLIENT_SECRETS_PATH}"
-    )
+    logger.debug(f"Created OAuth flow from client secrets file: {CONFIG_CLIENT_SECRETS_PATH}")
     return flow
 
 
@@ -319,19 +291,11 @@ async def start_auth_flow(
         Exception: If the OAuth flow cannot be initiated.
     """
     initial_email_provided = bool(
-        user_google_email
-        and user_google_email.strip()
-        and user_google_email.lower() != "default"
+        user_google_email and user_google_email.strip() and user_google_email.lower() != "default"
     )
-    user_display_name = (
-        f"{service_name} for '{user_google_email}'"
-        if initial_email_provided
-        else service_name
-    )
+    user_display_name = f"{service_name} for '{user_google_email}'" if initial_email_provided else service_name
 
-    logger.info(
-        f"[start_auth_flow] Initiating auth for {user_display_name} with scopes for enabled tools."
-    )
+    logger.info(f"[start_auth_flow] Initiating auth for {user_display_name} with scopes for enabled tools.")
 
     # Note: Caller should ensure OAuth callback is available before calling this function
 
@@ -339,9 +303,7 @@ async def start_auth_flow(
         if "OAUTHLIB_INSECURE_TRANSPORT" not in os.environ and (
             "localhost" in redirect_uri or "127.0.0.1" in redirect_uri
         ):  # Use passed redirect_uri
-            logger.warning(
-                "OAUTHLIB_INSECURE_TRANSPORT not set. Setting it for localhost/local development."
-            )
+            logger.warning("OAUTHLIB_INSECURE_TRANSPORT not set. Setting it for localhost/local development.")
             os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
         oauth_state = os.urandom(16).hex()
@@ -405,9 +367,7 @@ def handle_auth_callback(
     redirect_uri: str,
     credentials_base_dir: str = DEFAULT_CREDENTIALS_DIR,
     session_id: Optional[str] = None,
-    client_secrets_path: Optional[
-        str
-    ] = None,  # Deprecated: kept for backward compatibility
+    client_secrets_path: Optional[str] = None,  # Deprecated: kept for backward compatibility
 ) -> Tuple[str, Credentials]:
     """
     Handles the callback from Google, exchanges the code for credentials,
@@ -439,9 +399,7 @@ def handle_auth_callback(
 
         # Allow HTTP for localhost in development
         if "OAUTHLIB_INSECURE_TRANSPORT" not in os.environ:
-            logger.warning(
-                "OAUTHLIB_INSECURE_TRANSPORT not set. Setting it for localhost development."
-            )
+            logger.warning("OAUTHLIB_INSECURE_TRANSPORT not set. Setting it for localhost development.")
             os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
         flow = create_oauth_flow(scopes=scopes, redirect_uri=redirect_uri)
@@ -477,7 +435,7 @@ def handle_auth_callback(
             scopes=credentials.scopes,
             expiry=credentials.expiry,
             mcp_session_id=session_id,
-            issuer="https://accounts.google.com"  # Add issuer for Google tokens
+            issuer="https://accounts.google.com",  # Add issuer for Google tokens
         )
 
         # If session_id is provided, also save to session cache for compatibility
@@ -547,7 +505,7 @@ def get_credentials(
                                 refresh_token=credentials.refresh_token,
                                 scopes=credentials.scopes,
                                 expiry=credentials.expiry,
-                                mcp_session_id=session_id
+                                mcp_session_id=session_id,
                             )
                         return credentials
                     except Exception as e:
@@ -560,14 +518,10 @@ def get_credentials(
 
     # Check for single-user mode
     if os.getenv("MCP_SINGLE_USER_MODE") == "1":
-        logger.info(
-            "[get_credentials] Single-user mode: bypassing session mapping, finding any credentials"
-        )
+        logger.info("[get_credentials] Single-user mode: bypassing session mapping, finding any credentials")
         credentials = _find_any_credentials(credentials_base_dir)
         if not credentials:
-            logger.info(
-                f"[get_credentials] Single-user mode: No credentials found in {credentials_base_dir}"
-            )
+            logger.info(f"[get_credentials] Single-user mode: No credentials found in {credentials_base_dir}")
             return None
 
         # In single-user mode, if user_google_email wasn't provided, try to get it from user info
@@ -581,9 +535,7 @@ def get_credentials(
                         f"[get_credentials] Single-user mode: extracted user email {user_google_email} from credentials"
                     )
             except Exception as e:
-                logger.debug(
-                    f"[get_credentials] Single-user mode: could not extract user email: {e}"
-                )
+                logger.debug(f"[get_credentials] Single-user mode: could not extract user email: {e}")
     else:
         credentials: Optional[Credentials] = None
 
@@ -598,9 +550,7 @@ def get_credentials(
         if session_id:
             credentials = load_credentials_from_session(session_id)
             if credentials:
-                logger.debug(
-                    f"[get_credentials] Loaded credentials from session for session_id '{session_id}'."
-                )
+                logger.debug(f"[get_credentials] Loaded credentials from session for session_id '{session_id}'.")
 
         if not credentials and user_google_email:
             if not is_stateless_mode():
@@ -618,9 +568,7 @@ def get_credentials(
                 logger.debug(
                     f"[get_credentials] Loaded from file for user '{user_google_email}', caching to session '{session_id}'."
                 )
-                save_credentials_to_session(
-                    session_id, credentials
-                )  # Cache for current session
+                save_credentials_to_session(session_id, credentials)  # Cache for current session
 
         if not credentials:
             logger.info(
@@ -643,23 +591,17 @@ def get_credentials(
     )
 
     if credentials.valid:
-        logger.debug(
-            f"[get_credentials] Credentials are valid. User: '{user_google_email}', Session: '{session_id}'"
-        )
+        logger.debug(f"[get_credentials] Credentials are valid. User: '{user_google_email}', Session: '{session_id}'")
         return credentials
     elif credentials.expired and credentials.refresh_token:
         logger.info(
             f"[get_credentials] Credentials expired. Attempting refresh. User: '{user_google_email}', Session: '{session_id}'"
         )
         if not client_secrets_path:
-            logger.error(
-                "[get_credentials] Client secrets path required for refresh but not provided."
-            )
+            logger.error("[get_credentials] Client secrets path required for refresh but not provided.")
             return None
         try:
-            logger.debug(
-                f"[get_credentials] Refreshing token using client_secrets_path: {client_secrets_path}"
-            )
+            logger.debug(f"[get_credentials] Refreshing token using client_secrets_path: {client_secrets_path}")
             # client_config = load_client_secrets(client_secrets_path) # Not strictly needed if creds have client_id/secret
             credentials.refresh(Request())
             logger.info(
@@ -686,7 +628,7 @@ def get_credentials(
                     scopes=credentials.scopes,
                     expiry=credentials.expiry,
                     mcp_session_id=session_id,
-                    issuer="https://accounts.google.com"  # Add issuer for Google tokens
+                    issuer="https://accounts.google.com",  # Add issuer for Google tokens
                 )
 
             if session_id:  # Update session cache if it was the source or is active
@@ -779,15 +721,13 @@ async def get_authenticated_google_service(
             else:
                 logger.debug(f"[{tool_name}] Context variable returned None/empty session ID")
         except Exception as e:
-            logger.debug(
-                f"[{tool_name}] Could not get FastMCP session from context: {e}"
-            )
+            logger.debug(f"[{tool_name}] Could not get FastMCP session from context: {e}")
 
         # Fallback to direct FastMCP context if context variable not set
         if not session_id and get_fastmcp_context:
             try:
                 fastmcp_ctx = get_fastmcp_context()
-                if fastmcp_ctx and hasattr(fastmcp_ctx, 'session_id'):
+                if fastmcp_ctx and hasattr(fastmcp_ctx, "session_id"):
                     session_id = fastmcp_ctx.session_id
                     logger.debug(f"[{tool_name}] Got FastMCP session ID directly: {session_id}")
                 else:
@@ -826,14 +766,10 @@ async def get_authenticated_google_service(
 
         redirect_uri = get_oauth_redirect_uri()
         config = get_oauth_config()
-        success, error_msg = ensure_oauth_callback_available(
-            get_transport_mode(), config.port, config.base_uri
-        )
+        success, error_msg = ensure_oauth_callback_available(get_transport_mode(), config.port, config.base_uri)
         if not success:
             error_detail = f" ({error_msg})" if error_msg else ""
-            raise GoogleAuthenticationError(
-                f"Cannot initiate OAuth flow - callback server unavailable{error_detail}"
-            )
+            raise GoogleAuthenticationError(f"Cannot initiate OAuth flow - callback server unavailable{error_detail}")
 
         # Generate auth URL and raise exception with it
         auth_response = await start_auth_flow(
@@ -853,9 +789,7 @@ async def get_authenticated_google_service(
         if credentials and credentials.id_token:
             try:
                 # Decode without verification (just to get email for logging)
-                decoded_token = jwt.decode(
-                    credentials.id_token, options={"verify_signature": False}
-                )
+                decoded_token = jwt.decode(credentials.id_token, options={"verify_signature": False})
                 token_email = decoded_token.get("email")
                 if token_email:
                     log_user_email = token_email
@@ -863,9 +797,7 @@ async def get_authenticated_google_service(
             except Exception as e:
                 logger.debug(f"[{tool_name}] Could not decode id_token: {e}")
 
-        logger.info(
-            f"[{tool_name}] Successfully authenticated {service_name} service for user: {log_user_email}"
-        )
+        logger.info(f"[{tool_name}] Successfully authenticated {service_name} service for user: {log_user_email}")
         return service, log_user_email
 
     except Exception as e:

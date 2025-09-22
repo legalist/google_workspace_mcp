@@ -18,15 +18,15 @@ from google.oauth2.credentials import Credentials
 logger = logging.getLogger(__name__)
 
 # Context variable to store the current session information
-_current_session_context: contextvars.ContextVar[Optional['SessionContext']] = contextvars.ContextVar(
-    'current_session_context',
-    default=None
+_current_session_context: contextvars.ContextVar[Optional["SessionContext"]] = contextvars.ContextVar(
+    "current_session_context", default=None
 )
 
 
 @dataclass
 class SessionContext:
     """Container for session-related information."""
+
     session_id: Optional[str] = None
     user_id: Optional[str] = None
     auth_context: Optional[Any] = None
@@ -128,6 +128,7 @@ def extract_session_from_headers(headers: Dict[str, str]) -> Optional[str]:
         # If no session found, create a temporary session ID from token hash
         # This allows header-based authentication to work with session context
         import hashlib
+
         token_hash = hashlib.sha256(token.encode()).hexdigest()[:8]
         return f"bearer_token_{token_hash}"
 
@@ -137,6 +138,7 @@ def extract_session_from_headers(headers: Dict[str, str]) -> Optional[str]:
 # =============================================================================
 # OAuth21SessionStore - Main Session Management
 # =============================================================================
+
 
 class OAuth21SessionStore:
     """
@@ -210,11 +212,15 @@ class OAuth21SessionStore:
                     logger.info(f"Created immutable session binding: {mcp_session_id} -> {user_email}")
                 elif self._session_auth_binding[mcp_session_id] != user_email:
                     # Security: Attempt to bind session to different user
-                    logger.error(f"SECURITY: Attempt to rebind session {mcp_session_id} from {self._session_auth_binding[mcp_session_id]} to {user_email}")
+                    logger.error(
+                        f"SECURITY: Attempt to rebind session {mcp_session_id} from {self._session_auth_binding[mcp_session_id]} to {user_email}"
+                    )
                     raise ValueError(f"Session {mcp_session_id} is already bound to a different user")
 
                 self._mcp_session_mapping[mcp_session_id] = user_email
-                logger.info(f"Stored OAuth 2.1 session for {user_email} (session_id: {session_id}, mcp_session_id: {mcp_session_id})")
+                logger.info(
+                    f"Stored OAuth 2.1 session for {user_email} (session_id: {session_id}, mcp_session_id: {mcp_session_id})"
+                )
             else:
                 logger.info(f"Stored OAuth 2.1 session for {user_email} (session_id: {session_id})")
 
@@ -282,7 +288,7 @@ class OAuth21SessionStore:
         requested_user_email: str,
         session_id: Optional[str] = None,
         auth_token_email: Optional[str] = None,
-        allow_recent_auth: bool = False
+        allow_recent_auth: bool = False,
     ) -> Optional[Credentials]:
         """
         Get Google credentials with session validation.
@@ -341,6 +347,7 @@ class OAuth21SessionStore:
                 # Check transport mode to ensure this is only used in stdio
                 try:
                     from core.config import get_transport_mode
+
                     transport_mode = get_transport_mode()
                     if transport_mode != "stdio":
                         logger.error(
@@ -359,9 +366,7 @@ class OAuth21SessionStore:
                 return self.get_credentials(requested_user_email)
 
             # No session or token info available - deny access for security
-            logger.warning(
-                f"Credential access denied for {requested_user_email}: No valid session or token"
-            )
+            logger.warning(f"Credential access denied for {requested_user_email}: No valid session or token")
             return None
 
     def get_user_by_mcp_session(self, mcp_session_id: str) -> Optional[str]:
@@ -503,7 +508,7 @@ def get_credentials_from_token(access_token: str, user_email: Optional[str] = No
             client_id=_auth_provider.client_id,
             client_secret=_auth_provider.client_secret,
             scopes=None,  # Will be populated from token claims if available
-            expiry=expiry
+            expiry=expiry,
         )
 
         logger.debug("Created Google credentials from bearer token")
@@ -535,6 +540,7 @@ def store_token_session(token_response: dict, user_email: str, mcp_session_id: O
         if not mcp_session_id:
             try:
                 from core.context import get_fastmcp_session_id
+
                 mcp_session_id = get_fastmcp_session_id()
                 if mcp_session_id:
                     logger.debug(f"Got FastMCP session ID from context: {mcp_session_id}")

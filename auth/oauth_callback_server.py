@@ -16,12 +16,17 @@ from fastapi import FastAPI, Request
 from typing import Optional
 from urllib.parse import urlparse
 
-from auth.scopes import SCOPES, get_current_scopes # noqa
-from auth.oauth_responses import create_error_response, create_success_response, create_server_error_response
+from auth.scopes import SCOPES, get_current_scopes  # noqa
+from auth.oauth_responses import (
+    create_error_response,
+    create_success_response,
+    create_server_error_response,
+)
 from auth.google_auth import handle_auth_callback, check_client_secrets
 from auth.oauth_config import get_oauth_redirect_uri
 
 logger = logging.getLogger(__name__)
+
 
 class MinimalOAuthServer:
     """
@@ -76,7 +81,7 @@ class MinimalOAuthServer:
                     scopes=get_current_scopes(),
                     authorization_response=str(request.url),
                     redirect_uri=redirect_uri,
-                    session_id=None
+                    session_id=None,
                 )
 
                 logger.info(f"OAuth callback: Successfully authenticated user: {verified_user_id} (state: {state}).")
@@ -104,9 +109,9 @@ class MinimalOAuthServer:
         # Extract hostname from base_uri (e.g., "http://localhost" -> "localhost")
         try:
             parsed_uri = urlparse(self.base_uri)
-            hostname = parsed_uri.hostname or 'localhost'
+            hostname = parsed_uri.hostname or "localhost"
         except Exception:
-            hostname = 'localhost'
+            hostname = "localhost"
 
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -124,7 +129,7 @@ class MinimalOAuthServer:
                     host=hostname,
                     port=self.port,
                     log_level="warning",
-                    access_log=False
+                    access_log=False,
                 )
                 self.server = uvicorn.Server(config)
                 asyncio.run(self.server.serve())
@@ -163,7 +168,7 @@ class MinimalOAuthServer:
 
         try:
             if self.server:
-                if hasattr(self.server, 'should_exit'):
+                if hasattr(self.server, "should_exit"):
                     self.server.should_exit = True
 
             if self.server_thread and self.server_thread.is_alive():
@@ -179,7 +184,10 @@ class MinimalOAuthServer:
 # Global instance for stdio mode
 _minimal_oauth_server: Optional[MinimalOAuthServer] = None
 
-def ensure_oauth_callback_available(transport_mode: str = "stdio", port: int = 8000, base_uri: str = "http://localhost") -> tuple[bool, str]:
+
+def ensure_oauth_callback_available(
+    transport_mode: str = "stdio", port: int = 8000, base_uri: str = "http://localhost"
+) -> tuple[bool, str]:
     """
     Ensure OAuth callback endpoint is available for the given transport mode.
 
@@ -224,6 +232,7 @@ def ensure_oauth_callback_available(transport_mode: str = "stdio", port: int = 8
         error_msg = f"Unknown transport mode: {transport_mode}"
         logger.error(error_msg)
         return False, error_msg
+
 
 def cleanup_oauth_callback_server():
     """Clean up the minimal OAuth server if it was started."""

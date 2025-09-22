@@ -89,9 +89,7 @@ class LocalDirectoryCredentialStore(CredentialStore):
             else:
                 home_dir = os.path.expanduser("~")
                 if home_dir and home_dir != "~":
-                    base_dir = os.path.join(
-                        home_dir, ".google_workspace_mcp", "credentials"
-                    )
+                    base_dir = os.path.join(home_dir, ".google_workspace_mcp", "credentials")
                 else:
                     base_dir = os.path.join(os.getcwd(), ".credentials")
 
@@ -142,9 +140,7 @@ class LocalDirectoryCredentialStore(CredentialStore):
             return credentials
 
         except (IOError, json.JSONDecodeError, KeyError) as e:
-            logger.error(
-                f"Error loading credentials for {user_email} from {creds_path}: {e}"
-            )
+            logger.error(f"Error loading credentials for {user_email} from {creds_path}: {e}")
             return None
 
     def store_credential(self, user_email: str, credentials: Credentials) -> bool:
@@ -167,9 +163,7 @@ class LocalDirectoryCredentialStore(CredentialStore):
             logger.info(f"Stored credentials for {user_email} to {creds_path}")
             return True
         except IOError as e:
-            logger.error(
-                f"Error storing credentials for {user_email} to {creds_path}: {e}"
-            )
+            logger.error(f"Error storing credentials for {user_email} to {creds_path}: {e}")
             return False
 
     def delete_credential(self, user_email: str) -> bool:
@@ -182,14 +176,10 @@ class LocalDirectoryCredentialStore(CredentialStore):
                 logger.info(f"Deleted credentials for {user_email} from {creds_path}")
                 return True
             else:
-                logger.debug(
-                    f"No credential file to delete for {user_email} at {creds_path}"
-                )
+                logger.debug(f"No credential file to delete for {user_email} at {creds_path}")
                 return True  # Consider it a success if file doesn't exist
         except IOError as e:
-            logger.error(
-                f"Error deleting credentials for {user_email} from {creds_path}: {e}"
-            )
+            logger.error(f"Error deleting credentials for {user_email} from {creds_path}: {e}")
             return False
 
     def list_users(self) -> List[str]:
@@ -203,9 +193,7 @@ class LocalDirectoryCredentialStore(CredentialStore):
                 if filename.endswith(".json"):
                     user_email = filename[:-5]  # Remove .json extension
                     users.append(user_email)
-            logger.debug(
-                f"Found {len(users)} users with credentials in {self.base_dir}"
-            )
+            logger.debug(f"Found {len(users)} users with credentials in {self.base_dir}")
         except OSError as e:
             logger.error(f"Error listing credential files in {self.base_dir}: {e}")
 
