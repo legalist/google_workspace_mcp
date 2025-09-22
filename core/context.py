@@ -5,7 +5,6 @@ from typing import Optional
 # Context variable to hold injected credentials for the life of a single request.
 _injected_oauth_credentials = contextvars.ContextVar("injected_oauth_credentials", default=None)
 
-
 # Context variable to hold FastMCP session ID for the life of a single request.
 _fastmcp_session_id = contextvars.ContextVar("fastmcp_session_id", default=None)
 

@@ -1,22 +1,26 @@
 import logging
-from typing import Optional, Union
 from importlib import metadata
+from typing import Optional, Union
 
 from fastapi.responses import HTMLResponse, JSONResponse
-from starlette.applications import Starlette
-from starlette.requests import Request
-from starlette.middleware import Middleware
-
 from fastmcp import FastMCP
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.requests import Request
 
-from auth.oauth21_session_store import get_oauth21_session_store, set_auth_provider
-from auth.google_auth import handle_auth_callback, start_auth_flow, check_client_secrets
-from auth.oauth_callback_server import (
-    get_oauth_redirect_uri,
-    ensure_oauth_callback_available,
-)
 from auth.auth_info_middleware import AuthInfoMiddleware
 from auth.fastmcp_google_auth import GoogleWorkspaceAuthProvider
+from auth.google_auth import handle_auth_callback, start_auth_flow, check_client_secrets
+from auth.mcp_session_middleware import MCPSessionMiddleware
+from auth.oauth21_session_store import get_oauth21_session_store, set_auth_provider
+from auth.oauth_callback_server import (
+    ensure_oauth_callback_available,
+)
+from auth.oauth_responses import (
+    create_error_response,
+    create_success_response,
+    create_server_error_response,
+)
 from auth.scopes import SCOPES, get_current_scopes  # noqa
 from core.config import (
     USER_GOOGLE_EMAIL,
@@ -26,50 +30,8 @@ from core.config import (
     WORKSPACE_MCP_PORT,
     WORKSPACE_MCP_BASE_URI,
 )
-from auth.oauth_responses import (
-    create_error_response,
-    create_success_response,
-    create_server_error_response,
-)
 
 # Import shared configuration
-from auth.scopes import (
-    SCOPES,
-    USERINFO_EMAIL_SCOPE,  # noqa: F401
-    OPENID_SCOPE,  # noqa: F401
-    CALENDAR_READONLY_SCOPE,  # noqa: F401
-    CALENDAR_EVENTS_SCOPE,  # noqa: F401
-    DRIVE_READONLY_SCOPE,  # noqa: F401
-    DRIVE_FILE_SCOPE,  # noqa: F401
-    GMAIL_READONLY_SCOPE,  # noqa: F401
-    GMAIL_SEND_SCOPE,  # noqa: F401
-    GMAIL_COMPOSE_SCOPE,  # noqa: F401
-    GMAIL_MODIFY_SCOPE,  # noqa: F401
-    GMAIL_LABELS_SCOPE,  # noqa: F401
-    BASE_SCOPES,  # noqa: F401
-    CALENDAR_SCOPES,  # noqa: F401
-    DRIVE_SCOPES,  # noqa: F401
-    GMAIL_SCOPES,  # noqa: F401
-    DOCS_READONLY_SCOPE,  # noqa: F401
-    DOCS_WRITE_SCOPE,  # noqa: F401
-    CHAT_READONLY_SCOPE,  # noqa: F401
-    CHAT_WRITE_SCOPE,  # noqa: F401
-    CHAT_SPACES_SCOPE,  # noqa: F401
-    CHAT_SCOPES,  # noqa: F401
-    SHEETS_READONLY_SCOPE,  # noqa: F401
-    SHEETS_WRITE_SCOPE,  # noqa: F401
-    SHEETS_SCOPES,  # noqa: F401
-    FORMS_BODY_SCOPE,  # noqa: F401
-    FORMS_BODY_READONLY_SCOPE,  # noqa: F401
-    FORMS_RESPONSES_READONLY_SCOPE,  # noqa: F401
-    FORMS_SCOPES,  # noqa: F401
-    SLIDES_SCOPE,  # noqa: F401
-    SLIDES_READONLY_SCOPE,  # noqa: F401
-    SLIDES_SCOPES,  # noqa: F401
-    TASKS_SCOPE,  # noqa: F401
-    TASKS_READONLY_SCOPE,  # noqa: F401
-    TASKS_SCOPES,  # noqa: F401
-)
 
 try:
     from auth.google_remote_auth_provider import GoogleRemoteAuthProvider

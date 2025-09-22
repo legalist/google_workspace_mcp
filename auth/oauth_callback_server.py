@@ -12,7 +12,12 @@ import threading
 import time
 from typing import Optional
 from urllib.parse import urlparse
-
+from auth.scopes import SCOPES, get_current_scopes  # noqa
+from auth.oauth_responses import (
+    create_error_response,
+    create_success_response,
+    create_server_error_response,
+)
 import uvicorn
 from fastapi import FastAPI, Request
 
