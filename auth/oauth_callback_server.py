@@ -7,24 +7,23 @@ In stdio mode: Starts a minimal HTTP server just for OAuth callbacks
 
 import asyncio
 import logging
-import socket
 import threading
 import time
+import socket
+import uvicorn
+
+from fastapi import FastAPI, Request
 from typing import Optional
 from urllib.parse import urlparse
 
-import uvicorn
-from fastapi import FastAPI, Request
-
-from auth.google_auth import handle_auth_callback, check_client_secrets
-from auth.oauth_config import get_oauth_redirect_uri
+from auth.scopes import SCOPES, get_current_scopes  # noqa
 from auth.oauth_responses import (
     create_error_response,
     create_success_response,
     create_server_error_response,
 )
-from auth.scopes import SCOPES, get_current_scopes  # noqa
-from auth.scopes import SCOPES, get_current_scopes  # noqa
+from auth.google_auth import handle_auth_callback, check_client_secrets
+from auth.oauth_config import get_oauth_redirect_uri
 
 logger = logging.getLogger(__name__)
 

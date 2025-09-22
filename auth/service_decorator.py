@@ -420,7 +420,6 @@ def require_google_service(
     service_type: str,
     scopes: Union[str, List[str]],
     version: Optional[str] = None,
-    cache_enabled: bool = True,
 ):
     """
     Decorator that automatically handles Google service authentication and injection.
